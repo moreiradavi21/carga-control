@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Shield, Radio } from "lucide-react";
+import { Shield, Radio, Clock } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -35,6 +35,7 @@ const signupSchema = loginSchema.extend({
 function AuthPage() {
   const nav = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [cadastroPendente, setCadastroPendente] = useState(false);
 
   const loginForm = useForm({ resolver: zodResolver(loginSchema), defaultValues: { email: "", password: "" } });
   const signupForm = useForm<z.infer<typeof signupSchema>>({ resolver: zodResolver(signupSchema), defaultValues: { email: "", password: "", full_name: "", posto_graduacao: "", role: "telefonista" } });
@@ -55,12 +56,46 @@ function AuthPage() {
       password: values.password,
       options: {
         emailRedirectTo: `${window.location.origin}/dashboard`,
-        data: { full_name: values.full_name, posto_graduacao: values.posto_graduacao, role: values.role },
+        data: {
+          full_name: values.full_name,
+          posto_graduacao: values.posto_graduacao,
+          role: values.role,
+          // status inicia como 'pendente' — definido na migração SQL
+        },
       },
     });
     setLoading(false);
     if (error) return toast.error("Falha no cadastro: " + error.message);
-    toast.success("Conta criada. Verifique seu e-mail se solicitado.");
+    setCadastroPendente(true);
+  }
+
+  if (cadastroPendente) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-sidebar via-primary to-sidebar">
+        <div className="w-full max-w-md">
+          <Card className="shadow-2xl text-center">
+            <CardHeader>
+              <div className="flex justify-center mb-2">
+                <Clock className="h-12 w-12 text-yellow-500" />
+              </div>
+              <CardTitle>Cadastro realizado!</CardTitle>
+              <CardDescription>Aguardando aprovação do Comandante</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Seu cadastro foi recebido. O Comandante do Pelotão precisará aprovar o seu acesso antes que você possa utilizar o sistema.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Após a aprovação, faça login normalmente com seu e-mail e senha.
+              </p>
+              <Button variant="outline" className="w-full" onClick={() => setCadastroPendente(false)}>
+                Voltar para login
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -116,7 +151,7 @@ function AuthPage() {
                     {signupForm.formState.errors.posto_graduacao && <p className="text-xs text-destructive">{signupForm.formState.errors.posto_graduacao.message}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="s-role">Função</Label>
+                    <Label htmlFor="s-role">Função solicitada</Label>
                     <select
                       id="s-role"
                       className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
@@ -137,9 +172,9 @@ function AuthPage() {
                     <Input id="s-pass" type="password" {...signupForm.register("password")} />
                     {signupForm.formState.errors.password && <p className="text-xs text-destructive">{signupForm.formState.errors.password.message}</p>}
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>{loading ? "Cadastrando..." : "Cadastrar"}</Button>
+                  <Button type="submit" className="w-full" disabled={loading}>{loading ? "Cadastrando..." : "Solicitar Cadastro"}</Button>
                   <p className="text-xs text-muted-foreground text-center">
-                    O cadastro como Cmt Pel deve ser autorizado pelo Comandante do Pelotão.
+                    O cadastro precisa ser aprovado pelo Comandante do Pelotão antes de liberar o acesso.
                   </p>
                 </form>
               </TabsContent>

@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/sismat/use-auth";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarHeader, SidebarTrigger, SidebarFooter } from "@/components/ui/sidebar";
-import { LayoutDashboard, Radio, ClipboardList, FileUp, Users, FileText, ShieldAlert, LogOut, Shield } from "lucide-react";
+import { LayoutDashboard, Radio, ClipboardList, FileUp, Users, FileText, ShieldAlert, LogOut, Shield, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -29,7 +29,7 @@ const navAdmin = [
 ];
 
 function AuthLayout() {
-  const { role, fullName, loading } = useAuth();
+  const { role, fullName, status, loading } = useAuth();
   const nav = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
@@ -41,6 +41,52 @@ function AuthLayout() {
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando...</div>;
+  }
+
+  // Usuário com cadastro pendente de aprovação
+  if (status === "pendente") {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-sidebar via-primary to-sidebar">
+        <div className="w-full max-w-md text-center space-y-6">
+          <div className="bg-card rounded-xl shadow-2xl p-8 space-y-4">
+            <Clock className="h-14 w-14 text-yellow-500 mx-auto" />
+            <h2 className="text-xl font-bold">Cadastro aguardando aprovação</h2>
+            <p className="text-sm text-muted-foreground">
+              Seu cadastro foi recebido e está aguardando a aprovação do Comandante do Pelotão.
+              Você será notificado assim que o acesso for liberado.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Logado como: <span className="font-medium">{fullName}</span>
+            </p>
+            <Button variant="outline" className="w-full" onClick={signOut}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Sair
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Usuário rejeitado
+  if (status === "rejeitado") {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-sidebar via-primary to-sidebar">
+        <div className="w-full max-w-md text-center space-y-6">
+          <div className="bg-card rounded-xl shadow-2xl p-8 space-y-4">
+            <Shield className="h-14 w-14 text-destructive mx-auto" />
+            <h2 className="text-xl font-bold">Acesso negado</h2>
+            <p className="text-sm text-muted-foreground">
+              Seu cadastro foi recusado. Entre em contato com o Comandante do Pelotão para mais informações.
+            </p>
+            <Button variant="outline" className="w-full" onClick={signOut}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Sair
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const items = role === "comandante" ? [...navBase, ...navAdmin] : navBase;

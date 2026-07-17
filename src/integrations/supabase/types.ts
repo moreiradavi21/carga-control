@@ -356,6 +356,8 @@ export type Database = {
           full_name: string
           id: string
           posto_graduacao: string | null
+          requested_role: string
+          status: string
           updated_at: string
         }
         Insert: {
@@ -363,6 +365,8 @@ export type Database = {
           full_name: string
           id: string
           posto_graduacao?: string | null
+          requested_role?: string
+          status?: string
           updated_at?: string
         }
         Update: {
@@ -370,6 +374,8 @@ export type Database = {
           full_name?: string
           id?: string
           posto_graduacao?: string | null
+          requested_role?: string
+          status?: string
           updated_at?: string
         }
         Relationships: []
