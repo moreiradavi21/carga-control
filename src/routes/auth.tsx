@@ -37,7 +37,7 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
 
   const loginForm = useForm({ resolver: zodResolver(loginSchema), defaultValues: { email: "", password: "" } });
-  const signupForm = useForm({ resolver: zodResolver(signupSchema), defaultValues: { email: "", password: "", full_name: "", posto_graduacao: "", role: "telefonista" } });
+  const signupForm = useForm<z.infer<typeof signupSchema>>({ resolver: zodResolver(signupSchema), defaultValues: { email: "", password: "", full_name: "", posto_graduacao: "", role: "telefonista" } });
 
   async function onLogin(values: z.infer<typeof loginSchema>) {
     setLoading(true);
