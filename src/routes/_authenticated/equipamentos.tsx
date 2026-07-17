@@ -144,8 +144,8 @@ function EquipamentosPage() {
         </CardContent>
       </Card>
 
-      <EquipamentoDialog open={creating || !!editing} onOpenChange={(v)=>{ if(!v){ setCreating(false); setEditing(null); } }} equipamento={editing} categorias={cats} />
-      <QrDialog open={!!qr} onOpenChange={(v)=>{ if(!v) setQr(null); }} equipamento={qr} />
+      <EquipamentoDialog open={creating || !!editing} onOpenChange={(v: boolean)=>{ if(!v){ setCreating(false); setEditing(null); } }} equipamento={editing} categorias={cats} />
+      <QrDialog open={!!qr} onOpenChange={(v: boolean)=>{ if(!v) setQr(null); }} equipamento={qr} />
     </div>
   );
 }
