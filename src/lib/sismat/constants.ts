@@ -1,3 +1,6 @@
+// Conta mestre: sempre Comandante, nunca precisa de aprovação, não pode ser excluída
+export const MASTER_EMAIL = "moreira.pelcom.eb@gmail.com";
+
 export const SITUACOES = [
   { value: "disponivel", label: "Disponível", color: "bg-emerald-600" },
   { value: "em_cautela", label: "Em cautela", color: "bg-amber-600" },
