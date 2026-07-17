@@ -29,6 +29,7 @@ const loginSchema = z.object({
 const signupSchema = loginSchema.extend({
   full_name: z.string().min(3, "Nome completo obrigatório"),
   posto_graduacao: z.string().min(1, "Informe o posto/graduação"),
+  role: z.enum(["comandante", "telefonista"]),
 });
 
 function AuthPage() {
@@ -36,7 +37,7 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
 
   const loginForm = useForm({ resolver: zodResolver(loginSchema), defaultValues: { email: "", password: "" } });
-  const signupForm = useForm({ resolver: zodResolver(signupSchema), defaultValues: { email: "", password: "", full_name: "", posto_graduacao: "" } });
+  const signupForm = useForm({ resolver: zodResolver(signupSchema), defaultValues: { email: "", password: "", full_name: "", posto_graduacao: "", role: "telefonista" } });
 
   async function onLogin(values: z.infer<typeof loginSchema>) {
     setLoading(true);
@@ -54,7 +55,7 @@ function AuthPage() {
       password: values.password,
       options: {
         emailRedirectTo: `${window.location.origin}/dashboard`,
-        data: { full_name: values.full_name, posto_graduacao: values.posto_graduacao },
+        data: { full_name: values.full_name, posto_graduacao: values.posto_graduacao, role: values.role },
       },
     });
     setLoading(false);
@@ -115,6 +116,18 @@ function AuthPage() {
                     {signupForm.formState.errors.posto_graduacao && <p className="text-xs text-destructive">{signupForm.formState.errors.posto_graduacao.message}</p>}
                   </div>
                   <div className="space-y-2">
+                    <Label htmlFor="s-role">Função</Label>
+                    <select
+                      id="s-role"
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                      {...signupForm.register("role")}
+                    >
+                      <option value="telefonista">Telefonista</option>
+                      <option value="comandante">Cmt Pel</option>
+                    </select>
+                    {signupForm.formState.errors.role && <p className="text-xs text-destructive">{signupForm.formState.errors.role.message}</p>}
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="s-email">E-mail</Label>
                     <Input id="s-email" type="email" {...signupForm.register("email")} />
                     {signupForm.formState.errors.email && <p className="text-xs text-destructive">{signupForm.formState.errors.email.message}</p>}
@@ -126,7 +139,7 @@ function AuthPage() {
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>{loading ? "Cadastrando..." : "Cadastrar"}</Button>
                   <p className="text-xs text-muted-foreground text-center">
-                    Novos cadastros iniciam como Telefonista. Solicite ao Comandante elevação de perfil.
+                    O cadastro como Cmt Pel deve ser autorizado pelo Comandante do Pelotão.
                   </p>
                 </form>
               </TabsContent>
