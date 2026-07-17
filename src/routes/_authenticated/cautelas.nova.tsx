@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +20,10 @@ function NovaCautela() {
   const nav = useNavigate();
   const sigRef = useRef<SignatureCanvas>(null);
 
-  const [militarId, setMilitarId] = useState<string>("");
+  const [postoResp, setPostoResp] = useState("");
+  const [militarResp, setMilitarResp] = useState("");
+  const [postoRet, setPostoRet] = useState("");
+  const [militarRet, setMilitarRet] = useState("");
   const [companhiaId, setCompanhiaId] = useState<string>("");
   const [finalidade, setFinalidade] = useState<string>("Missão operacional");
   const [dataDev, setDataDev] = useState<string>("");
@@ -28,13 +31,9 @@ function NovaCautela() {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
 
-  const { data: militares = [] } = useQuery({
-    queryKey: ["militares"],
-    queryFn: async () => (await supabase.from("profiles").select("id, full_name, posto_graduacao").order("full_name")).data ?? [],
-  });
   const { data: companhias = [] } = useQuery({
     queryKey: ["companhias"],
-    queryFn: async () => (await supabase.from("companhias").select("*").order("nome")).data ?? [],
+    queryFn: async () => (await supabase.from("companhias").select("*").order("ordem")).data ?? [],
   });
   const { data: equips = [] } = useQuery({
     queryKey: ["equips-disp"],
@@ -45,35 +44,34 @@ function NovaCautela() {
   const selectedIds = Object.keys(selected).filter((k) => selected[k]);
 
   async function save() {
-    if (!militarId) return toast.error("Selecione o militar responsável");
+    if (!militarResp.trim()) return toast.error("Informe o militar responsável");
+    if (!militarRet.trim()) return toast.error("Informe o militar da retirada");
+    if (!companhiaId) return toast.error("Selecione a companhia");
     if (selectedIds.length === 0) return toast.error("Selecione ao menos um equipamento");
-    if (!sigRef.current || sigRef.current.isEmpty()) return toast.error("Assinatura do militar obrigatória");
+    if (!sigRef.current || sigRef.current.isEmpty()) return toast.error("Assinatura obrigatória");
 
     setSaving(true);
     try {
       const { data: user } = await supabase.auth.getUser();
       const sigDataUrl = sigRef.current.toDataURL("image/png");
-      // upload signature
-      const blob = await (await fetch(sigDataUrl)).blob();
-      const fileName = `cautela-${Date.now()}.png`;
-      const { error: upErr } = await supabase.storage.from("assinaturas").upload(fileName, blob, { contentType: "image/png" });
-      let sigUrl: string | null = null;
-      if (!upErr) {
-        const { data: pub } = supabase.storage.from("assinaturas").getPublicUrl(fileName);
-        sigUrl = pub.publicUrl;
-      }
 
-      const insertPayload: any = {
-        militar_id: militarId,
-        companhia_id: companhiaId || null,
-        finalidade,
-        data_devolucao_prevista: dataDev || null,
+      const { data: numeroData } = await supabase.rpc("gerar_numero_cautela");
+
+      const payload: any = {
+        numero: numeroData ?? `${new Date().getFullYear()}-${Date.now()}`,
+        militar_responsavel: militarResp,
+        posto_responsavel: postoResp || null,
+        militar_retirada: militarRet,
+        posto_retirada: postoRet || null,
+        companhia_id: companhiaId,
+        finalidade: finalidade || null,
+        previsao_devolucao: dataDev || null,
         observacoes: observacoes || null,
-        assinatura_militar_url: sigUrl,
-        emitido_por: user.user?.id,
+        assinatura_recebimento: sigDataUrl,
+        created_by: user.user?.id,
         status: "ativa",
       };
-      const { data: cautela, error } = await supabase.from("cautelas").insert(insertPayload).select().single();
+      const { data: cautela, error } = await supabase.from("cautelas").insert(payload).select().single();
       if (error) throw error;
 
       const itens = selectedIds.map((eid) => ({ cautela_id: cautela.id, equipamento_id: eid }));
@@ -98,20 +96,18 @@ function NovaCautela() {
       <Card>
         <CardHeader><CardTitle className="text-base">Dados da cautela</CardTitle></CardHeader>
         <CardContent className="grid md:grid-cols-2 gap-3">
-          <div className="space-y-1"><Label>Militar responsável *</Label>
-            <Select value={militarId} onValueChange={setMilitarId}>
-              <SelectTrigger><SelectValue placeholder="Selecionar militar..." /></SelectTrigger>
-              <SelectContent>{militares.map((m: any) => <SelectItem key={m.id} value={m.id}>{m.posto_graduacao} {m.full_name}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1"><Label>OM/Companhia</Label>
+          <div className="space-y-1"><Label>Posto/Grad. responsável</Label><Input value={postoResp} onChange={(e)=>setPostoResp(e.target.value)} placeholder="Ex.: Cap, Sgt" /></div>
+          <div className="space-y-1"><Label>Militar responsável *</Label><Input value={militarResp} onChange={(e)=>setMilitarResp(e.target.value)} /></div>
+          <div className="space-y-1"><Label>Posto/Grad. retirada</Label><Input value={postoRet} onChange={(e)=>setPostoRet(e.target.value)} /></div>
+          <div className="space-y-1"><Label>Militar retirada *</Label><Input value={militarRet} onChange={(e)=>setMilitarRet(e.target.value)} /></div>
+          <div className="space-y-1"><Label>Companhia *</Label>
             <Select value={companhiaId} onValueChange={setCompanhiaId}>
               <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
-              <SelectContent>{companhias.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.sigla} — {c.nome}</SelectItem>)}</SelectContent>
+              <SelectContent>{companhias.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div className="space-y-1"><Label>Finalidade</Label><Input value={finalidade} onChange={(e)=>setFinalidade(e.target.value)} /></div>
           <div className="space-y-1"><Label>Data prevista de devolução</Label><Input type="date" value={dataDev} onChange={(e)=>setDataDev(e.target.value)} /></div>
+          <div className="md:col-span-2 space-y-1"><Label>Finalidade</Label><Input value={finalidade} onChange={(e)=>setFinalidade(e.target.value)} /></div>
           <div className="md:col-span-2 space-y-1"><Label>Observações</Label><Textarea value={observacoes} onChange={(e)=>setObservacoes(e.target.value)} /></div>
         </CardContent>
       </Card>
