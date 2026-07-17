@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedEquipamentosRouteImport } from './routes/_authenticated/equipamentos'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedCautelasRouteImport } from './routes/_authenticated/cautelas'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -40,16 +41,23 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCautelasRoute = AuthenticatedCautelasRouteImport.update({
+  id: '/cautelas',
+  path: '/cautelas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/cautelas': typeof AuthenticatedCautelasRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/equipamentos': typeof AuthenticatedEquipamentosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/cautelas': typeof AuthenticatedCautelasRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/equipamentos': typeof AuthenticatedEquipamentosRoute
 }
@@ -58,19 +66,21 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/cautelas': typeof AuthenticatedCautelasRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/equipamentos': typeof AuthenticatedEquipamentosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/dashboard' | '/equipamentos'
+  fullPaths: '/' | '/auth' | '/cautelas' | '/dashboard' | '/equipamentos'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/dashboard' | '/equipamentos'
+  to: '/' | '/auth' | '/cautelas' | '/dashboard' | '/equipamentos'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/cautelas'
     | '/_authenticated/dashboard'
     | '/_authenticated/equipamentos'
   fileRoutesById: FileRoutesById
@@ -118,15 +128,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/cautelas': {
+      id: '/_authenticated/cautelas'
+      path: '/cautelas'
+      fullPath: '/cautelas'
+      preLoaderRoute: typeof AuthenticatedCautelasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedCautelasRoute: typeof AuthenticatedCautelasRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEquipamentosRoute: typeof AuthenticatedEquipamentosRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedCautelasRoute: AuthenticatedCautelasRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEquipamentosRoute: AuthenticatedEquipamentosRoute,
 }
