@@ -11,19 +11,16 @@ import { ptBR } from "date-fns/locale";
 
 export const Route = createFileRoute("/_authenticated/cautelas")({ component: CautelasPage });
 
-const STATUS_COLOR: Record<string,string> = {
-  ativa: "bg-amber-600", devolvida: "bg-emerald-700", parcialmente_devolvida: "bg-sky-700", cancelada: "bg-slate-500"
-};
-const STATUS_LABEL: Record<string,string> = {
-  ativa: "Ativa", devolvida: "Devolvida", parcialmente_devolvida: "Parcial", cancelada: "Cancelada"
-};
+const STATUS_COLOR: Record<string, string> = { ativa: "bg-amber-600", finalizada: "bg-emerald-700", cancelada: "bg-slate-500" };
+const STATUS_LABEL: Record<string, string> = { ativa: "Ativa", finalizada: "Finalizada", cancelada: "Cancelada" };
 
 function CautelasPage() {
   const { data: cautelas = [] } = useQuery({
     queryKey: ["cautelas"],
     queryFn: async () => {
-      const { data } = await supabase.from("cautelas")
-        .select("*, companhias(nome, sigla), profiles!cautelas_militar_id_fkey(full_name, posto_graduacao), cautela_itens(id)")
+      const { data } = await supabase
+        .from("cautelas")
+        .select("*, companhias(nome), cautela_itens(id)")
         .order("created_at", { ascending: false });
       return data ?? [];
     },
@@ -46,7 +43,7 @@ function CautelasPage() {
               <TableRow>
                 <TableHead>Número</TableHead>
                 <TableHead>Militar</TableHead>
-                <TableHead>OM/Companhia</TableHead>
+                <TableHead>Companhia</TableHead>
                 <TableHead>Emissão</TableHead>
                 <TableHead>Itens</TableHead>
                 <TableHead>Status</TableHead>
@@ -58,10 +55,10 @@ function CautelasPage() {
                 <TableRow key={c.id}>
                   <TableCell className="font-mono font-semibold">{c.numero}</TableCell>
                   <TableCell>
-                    <div className="text-sm font-medium">{c.profiles?.posto_graduacao} {c.profiles?.full_name}</div>
+                    <div className="text-sm font-medium">{c.posto_responsavel} {c.militar_responsavel}</div>
                   </TableCell>
-                  <TableCell className="text-sm">{c.companhias?.sigla ?? "—"}</TableCell>
-                  <TableCell className="text-sm">{format(new Date(c.data_emissao), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
+                  <TableCell className="text-sm">{c.companhias?.nome ?? "—"}</TableCell>
+                  <TableCell className="text-sm">{format(new Date(c.data_saida), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
                   <TableCell className="text-sm">{c.cautela_itens?.length ?? 0}</TableCell>
                   <TableCell><Badge className={`${STATUS_COLOR[c.status]} text-white`}>{STATUS_LABEL[c.status]}</Badge></TableCell>
                   <TableCell className="text-right">
