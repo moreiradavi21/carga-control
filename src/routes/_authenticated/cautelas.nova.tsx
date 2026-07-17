@@ -63,7 +63,7 @@ function NovaCautela() {
         sigUrl = pub.publicUrl;
       }
 
-      const { data: cautela, error } = await supabase.from("cautelas").insert({
+      const insertPayload: any = {
         militar_id: militarId,
         companhia_id: companhiaId || null,
         finalidade,
@@ -72,7 +72,8 @@ function NovaCautela() {
         assinatura_militar_url: sigUrl,
         emitido_por: user.user?.id,
         status: "ativa",
-      }).select().single();
+      };
+      const { data: cautela, error } = await supabase.from("cautelas").insert(insertPayload).select().single();
       if (error) throw error;
 
       const itens = selectedIds.map((eid) => ({ cautela_id: cautela.id, equipamento_id: eid }));
