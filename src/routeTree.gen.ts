@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedImportarRouteImport } from './routes/_authenticated/importar'
 import { Route as AuthenticatedEquipamentosRouteImport } from './routes/_authenticated/equipamentos'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCautelasRouteImport } from './routes/_authenticated/cautelas'
@@ -31,6 +32,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedImportarRoute = AuthenticatedImportarRouteImport.update({
+  id: '/importar',
+  path: '/importar',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedEquipamentosRoute =
   AuthenticatedEquipamentosRouteImport.update({
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/cautelas': typeof AuthenticatedCautelasRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/equipamentos': typeof AuthenticatedEquipamentosRoute
+  '/importar': typeof AuthenticatedImportarRoute
   '/cautelas/$id': typeof AuthenticatedCautelasIdRoute
   '/cautelas/nova': typeof AuthenticatedCautelasNovaRoute
 }
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/cautelas': typeof AuthenticatedCautelasRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/equipamentos': typeof AuthenticatedEquipamentosRoute
+  '/importar': typeof AuthenticatedImportarRoute
   '/cautelas/$id': typeof AuthenticatedCautelasIdRoute
   '/cautelas/nova': typeof AuthenticatedCautelasNovaRoute
 }
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/_authenticated/cautelas': typeof AuthenticatedCautelasRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/equipamentos': typeof AuthenticatedEquipamentosRoute
+  '/_authenticated/importar': typeof AuthenticatedImportarRoute
   '/_authenticated/cautelas/$id': typeof AuthenticatedCautelasIdRoute
   '/_authenticated/cautelas/nova': typeof AuthenticatedCautelasNovaRoute
 }
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/cautelas'
     | '/dashboard'
     | '/equipamentos'
+    | '/importar'
     | '/cautelas/$id'
     | '/cautelas/nova'
   fileRoutesByTo: FileRoutesByTo
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/cautelas'
     | '/dashboard'
     | '/equipamentos'
+    | '/importar'
     | '/cautelas/$id'
     | '/cautelas/nova'
   id:
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/_authenticated/cautelas'
     | '/_authenticated/dashboard'
     | '/_authenticated/equipamentos'
+    | '/_authenticated/importar'
     | '/_authenticated/cautelas/$id'
     | '/_authenticated/cautelas/nova'
   fileRoutesById: FileRoutesById
@@ -148,6 +160,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/importar': {
+      id: '/_authenticated/importar'
+      path: '/importar'
+      fullPath: '/importar'
+      preLoaderRoute: typeof AuthenticatedImportarRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/equipamentos': {
       id: '/_authenticated/equipamentos'
@@ -206,12 +225,14 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCautelasRoute: typeof AuthenticatedCautelasRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEquipamentosRoute: typeof AuthenticatedEquipamentosRoute
+  AuthenticatedImportarRoute: typeof AuthenticatedImportarRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCautelasRoute: AuthenticatedCautelasRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEquipamentosRoute: AuthenticatedEquipamentosRoute,
+  AuthenticatedImportarRoute: AuthenticatedImportarRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
