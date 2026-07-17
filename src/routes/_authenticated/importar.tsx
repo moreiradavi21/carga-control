@@ -3,12 +3,14 @@ import { useState } from "react";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { FileUp, CheckCircle2, FileText, Table, AlertCircle } from "lucide-react";
+import { FileUp, CheckCircle2, FileText, Table, AlertCircle, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/importar")({ component: Importar });
 
@@ -127,7 +129,31 @@ function Importar() {
   const [preview, setPreview] = useState<any[]>([]);
   const [fileType, setFileType] = useState<"csv" | "xlsx" | "pdf" | null>(null);
   const [importing, setImporting] = useState(false);
-  const [pdfRaw, setPdfRaw] = useState(false); // mostra texto bruto se parser falhou
+  const [deleting, setDeleting] = useState(false);
+  const [pdfRaw, setPdfRaw] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { data: totalEquipamentos = 0 } = useQuery({
+    queryKey: ["equipamentos-count"],
+    queryFn: async () => {
+      const { count } = await supabase.from("equipamentos").select("id", { count: "exact", head: true });
+      return count ?? 0;
+    },
+  });
+
+  async function excluirTodoMaterial() {
+    setDeleting(true);
+    try {
+      const { error } = await supabase.from("equipamentos").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      if (error) throw error;
+      toast.success("Todo o material foi excluído.");
+      queryClient.invalidateQueries({ queryKey: ["equipamentos-count"] });
+    } catch (e: any) {
+      toast.error("Erro ao excluir: " + e.message);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   function reset() {
     setPreview([]);
@@ -186,6 +212,7 @@ function Importar() {
       const { error } = await supabase.from("equipamentos").insert(rows as any);
       if (error) throw error;
       toast.success(`${rows.length} equipamento(s) importado(s) com sucesso!`);
+      queryClient.invalidateQueries({ queryKey: ["equipamentos-count"] });
       reset();
     } catch (e: any) {
       toast.error(e.message);
@@ -209,6 +236,47 @@ function Importar() {
         </p>
       </div>
 
+      {/* Excluir todo o material */}
+      <Card className="border-destructive/40">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2 text-destructive">
+            <Trash2 className="h-4 w-4" />
+            Excluir todo o material
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-between gap-4">
+          <p className="text-sm text-muted-foreground">
+            Remove <strong>todos os {totalEquipamentos} equipamento(s)</strong> cadastrados no sistema. Esta ação não pode ser desfeita.
+          </p>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" disabled={deleting || totalEquipamentos === 0}>
+                <Trash2 className="h-4 w-4 mr-1" />
+                {deleting ? "Excluindo..." : "Excluir tudo"}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluir todo o material?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Isso irá remover permanentemente todos os <strong>{totalEquipamentos} equipamento(s)</strong> do sistema, incluindo histórico de movimentações vinculado. Esta ação <strong>não pode ser desfeita</strong>.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={excluirTodoMaterial}
+                >
+                  Sim, excluir tudo
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardContent>
+      </Card>
+
+      {/* Importar arquivo */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
