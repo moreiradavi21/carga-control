@@ -335,9 +335,37 @@ function Importar() {
     setImporting(true);
     try {
       const rows = preview.map(normalizeRow);
-      const { error } = await supabase.from("equipamentos").insert(rows as any);
-      if (error) throw error;
-      toast.success(`${rows.length} equipamento(s) importado(s) com sucesso!`);
+
+      // Deduplica dentro do lote pelo numero_serie (mantém o primeiro)
+      const seen = new Set<string>();
+      const deduped = rows.filter((r) => {
+        if (!r.numero_serie) return true; // sem série: sempre inclui
+        if (seen.has(r.numero_serie)) return false;
+        seen.add(r.numero_serie);
+        return true;
+      });
+
+      // Separa itens com e sem numero_serie
+      const comSerie    = deduped.filter((r) => r.numero_serie);
+      const semSerie    = deduped.filter((r) => !r.numero_serie);
+      let errMsg: string | null = null;
+
+      // Com série → upsert ignorando duplicatas já existentes no banco
+      if (comSerie.length > 0) {
+        const { error } = await supabase
+          .from("equipamentos")
+          .upsert(comSerie as any, { onConflict: "numero_serie", ignoreDuplicates: true });
+        if (error) errMsg = error.message;
+      }
+
+      // Sem série → insert normal (NULL não conflita)
+      if (!errMsg && semSerie.length > 0) {
+        const { error } = await supabase.from("equipamentos").insert(semSerie as any);
+        if (error) errMsg = error.message;
+      }
+
+      if (errMsg) throw new Error(errMsg);
+      toast.success(`${deduped.length} equipamento(s) importado(s) com sucesso!`);
       queryClient.invalidateQueries({ queryKey: ["equipamentos-count"] });
       reset();
     } catch (e: any) {
