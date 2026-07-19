@@ -180,12 +180,19 @@ function normalizeRow(r: any) {
     idx[String(k).toLowerCase().trim()] = v;
   }
 
-  // Coluna "serviço" pode conter localização (texto) ou X (status)
+  // Coluna "PEF": qualquer valor não-vazio (X ou texto como SURUCUCU) → aguarda_guia_pef = true
+  // Se for texto (não X), o texto também vira localização
+  const pefRaw = idx["pef"] ?? null;
+  const pefVal = cleanVal(pefRaw);
+  const pefAtivo = pefVal !== null;                        // true se tiver qualquer conteúdo
+  const pefLoc  = pefAtivo && !isX(pefRaw) ? pefVal : null; // texto → localização
+
+  // Coluna "serviço" pode conter texto de localização (ex: PACARAIMA)
   const servicoRaw = idx["serviço"] ?? idx["servico"] ?? idx["serv."] ?? idx["serv"];
   const locFromServico = servicoRaw && !isX(servicoRaw) ? cleanVal(servicoRaw) : null;
 
   const base: any = {
-    // Patrimônio — aceita "N° PATRIMONIO", "N° PATRIMÔNIO", "Nº PATRIMÔNIO", "patrimônio", etc.
+    // Patrimônio — aceita "N° PATRIMONIO", "N° PATRIMÔNIO", "Nº PATRIMÔNIO", etc.
     patrimonio: cleanVal(
       idx["n° patrimonio"] ?? idx["n° patrimônio"] ?? idx["nº patrimônio"] ??
       idx["n.° patrimônio"] ?? idx["patrimonio"] ?? idx["patrimônio"] ?? idx["pat"] ?? null
@@ -197,18 +204,22 @@ function normalizeRow(r: any) {
     ),
     // Descrição — aceita "EQUIPAMENTO", "DESCRIÇÃO", "ITEM", etc.
     descricao: cleanVal(
-      idx["equipamento"] ?? idx["descricao"] ?? idx["descrição"] ?? idx["item"] ?? idx["descricao"]
+      idx["equipamento"] ?? idx["descricao"] ?? idx["descrição"] ?? idx["item"]
     ) ?? "Sem descrição",
     marca:      cleanVal(idx["marca"] ?? idx["fabricante"] ?? null),
     modelo:     cleanVal(idx["modelo"] ?? null),
-    localizacao: cleanVal(idx["localizacao"] ?? idx["localização"] ?? idx["local"] ?? null) ?? locFromServico,
+    // Localização: campo explícito > texto no PEF > texto no Serviço
+    localizacao: cleanVal(idx["localizacao"] ?? idx["localização"] ?? idx["local"] ?? null)
+                 ?? pefLoc
+                 ?? locFromServico,
     situacao:         "disponivel",   // padrão — sobrescrito abaixo se X detectado
-    aguarda_guia_pef: false,
+    aguarda_guia_pef: pefAtivo,       // ativa se PEF tem qualquer valor (X ou texto)
   };
 
-  // Varre todas as colunas procurando marcações X
+  // Varre colunas procurando X (pula "pef", já tratado acima)
   for (const [col, val] of Object.entries(r)) {
     const colNorm = String(col).toLowerCase().trim();
+    if (colNorm === "pef") continue;
     const mapping = COLUNA_STATUS[colNorm];
     if (mapping && isX(val)) {
       if (mapping.situacao)         base.situacao         = mapping.situacao;
