@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -40,13 +40,13 @@ function Auditoria() {
         .order("descricao");
       return (data ?? []) as Equipamento[];
     },
-    onSuccess: (data: Equipamento[]) => {
-      // Inicializa notas locais com o valor do banco
-      const init: Record<string, string> = {};
-      data.forEach((e) => { init[e.id] = e.notas_auditorio ?? ""; });
-      setNotas((prev) => ({ ...init, ...prev }));
-    },
-  } as any);
+  });
+
+  useEffect(() => {
+    const init: Record<string, string> = {};
+    sindicancia.forEach((e) => { init[e.id] = e.notas_auditorio ?? ""; });
+    setNotas((prev) => ({ ...init, ...prev }));
+  }, [sindicancia]);
 
   // Logs de auditoria
   const { data: logs = [] } = useQuery({
