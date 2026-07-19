@@ -187,9 +187,11 @@ function normalizeRow(r: any) {
   const pefAtivo = pefVal !== null;                        // true se tiver qualquer conteúdo
   const pefLoc  = pefAtivo && !isX(pefRaw) ? pefVal : null; // texto → localização
 
-  // Coluna "serviço" pode conter texto de localização (ex: PACARAIMA)
+  // Coluna "serviço": texto (ex: PACARAIMA) → em_cautela + localização; X → em_cautela sem loc
   const servicoRaw = idx["serviço"] ?? idx["servico"] ?? idx["serv."] ?? idx["serv"];
-  const locFromServico = servicoRaw && !isX(servicoRaw) ? cleanVal(servicoRaw) : null;
+  const servicoVal = cleanVal(servicoRaw);
+  const servicoAtivo = servicoVal !== null;
+  const locFromServico = servicoAtivo && !isX(servicoRaw) ? servicoVal : null;
 
   const base: any = {
     // Patrimônio — aceita "N° PATRIMONIO", "N° PATRIMÔNIO", "Nº PATRIMÔNIO", etc.
@@ -212,19 +214,37 @@ function normalizeRow(r: any) {
     localizacao: cleanVal(idx["localizacao"] ?? idx["localização"] ?? idx["local"] ?? null)
                  ?? pefLoc
                  ?? locFromServico,
-    situacao:         "disponivel",   // padrão — sobrescrito abaixo se X detectado
+    situacao:         "disponivel",   // padrão — sobrescrito abaixo
     aguarda_guia_pef: pefAtivo,       // ativa se PEF tem qualquer valor (X ou texto)
+    notas_auditorio:  null as string | null,
   };
 
-  // Varre colunas procurando X (pula "pef", já tratado acima)
+  // Serviço com qualquer valor → em_cautela
+  if (servicoAtivo) {
+    base.situacao = "em_cautela";
+  }
+
+  // Varra colunas procurando X (pula "pef" e "serviço", já tratados acima)
   for (const [col, val] of Object.entries(r)) {
     const colNorm = String(col).toLowerCase().trim();
-    if (colNorm === "pef") continue;
+    if (colNorm === "pef" || colNorm === "serviço" || colNorm === "servico") continue;
     const mapping = COLUNA_STATUS[colNorm];
     if (mapping && isX(val)) {
       if (mapping.situacao)         base.situacao         = mapping.situacao;
       if (mapping.aguarda_guia_pef) base.aguarda_guia_pef = true;
     }
+  }
+
+  // Material não encontrado/recebido → pré-preenche nota no Auditório
+  if (base.situacao === "em_sindicancia") {
+    const partes: string[] = ["Importado como não encontrado/recebido."];
+    if (base.descricao && base.descricao !== "Sem descrição") {
+      partes.push(`Material: ${base.descricao}.`);
+    }
+    if (base.patrimonio) {
+      partes.push(`Patrimônio: ${base.patrimonio}.`);
+    }
+    base.notas_auditorio = partes.join(" ");
   }
 
   return base;
