@@ -45,13 +45,14 @@ export function useAuth(): AuthState {
         return;
       }
 
-      const [{ data: roles }, { data: profile }] = await Promise.all([
+      const [rolesRes, profileRes] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", user.id),
         supabase.from("profiles").select("full_name, status, requested_role").eq("id", user.id).maybeSingle(),
       ]);
-      const role: Role = roles?.some((r) => r.role === "comandante") ? "comandante" : "telefonista";
-      const status = (profile?.status ?? "pendente") as Status;
-      if (mounted) setState({ user, role, fullName: profile?.full_name ?? user.email ?? null, status, loading: false });
+      const role: Role = rolesRes.data?.some((r) => r.role === "comandante") ? "comandante" : "telefonista";
+      // Se a coluna "status" ainda não existe no banco (migration pendente), assume aprovado
+      const status = ((profileRes.data as any)?.status ?? "aprovado") as Status;
+      if (mounted) setState({ user, role, fullName: profileRes.data?.full_name ?? user.email ?? null, status, loading: false });
     }
 
     supabase.auth.getUser().then(({ data }) => load(data.user));

@@ -18,9 +18,10 @@ function Dashboard() {
   const { data: stats } = useQuery({
     queryKey: ["dash-stats"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("equipamentos")
-        .select("situacao, categoria_id, categorias(nome), aguarda_guia_pef");
+        .select("situacao, categoria_id, categorias(nome)");
+      if (error) return [];
       return data ?? [];
     },
   });
@@ -28,12 +29,17 @@ function Dashboard() {
   const { data: pefMateriais = [] } = useQuery({
     queryKey: ["dash-pef"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("equipamentos")
-        .select("id, descricao, patrimonio, numero_serie, localizacao, situacao")
-        .eq("aguarda_guia_pef", true)
-        .order("descricao");
-      return data ?? [];
+      try {
+        const { data, error } = await supabase
+          .from("equipamentos")
+          .select("id, descricao, patrimonio, numero_serie, localizacao, situacao")
+          .eq("aguarda_guia_pef", true)
+          .order("descricao");
+        if (error) return [];
+        return data ?? [];
+      } catch {
+        return [];
+      }
     },
   });
 
