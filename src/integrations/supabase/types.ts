@@ -227,7 +227,6 @@ export type Database = {
       }
       equipamentos: {
         Row: {
-          aguarda_guia_pef: boolean
           categoria_id: string | null
           created_at: string
           created_by: string | null
@@ -237,7 +236,6 @@ export type Database = {
           localizacao: string | null
           marca: string | null
           modelo: string | null
-          notas_auditorio: string | null
           numero_serie: string | null
           observacoes: string | null
           patrimonio: string | null
@@ -245,7 +243,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          aguarda_guia_pef?: boolean
           categoria_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -255,7 +252,6 @@ export type Database = {
           localizacao?: string | null
           marca?: string | null
           modelo?: string | null
-          notas_auditorio?: string | null
           numero_serie?: string | null
           observacoes?: string | null
           patrimonio?: string | null
@@ -263,7 +259,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          aguarda_guia_pef?: boolean
           categoria_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -273,7 +268,6 @@ export type Database = {
           localizacao?: string | null
           marca?: string | null
           modelo?: string | null
-          notas_auditorio?: string | null
           numero_serie?: string | null
           observacoes?: string | null
           patrimonio?: string | null
@@ -362,8 +356,6 @@ export type Database = {
           full_name: string
           id: string
           posto_graduacao: string | null
-          requested_role: string
-          status: string
           updated_at: string
         }
         Insert: {
@@ -371,8 +363,6 @@ export type Database = {
           full_name: string
           id: string
           posto_graduacao?: string | null
-          requested_role?: string
-          status?: string
           updated_at?: string
         }
         Update: {
@@ -380,8 +370,6 @@ export type Database = {
           full_name?: string
           id?: string
           posto_graduacao?: string | null
-          requested_role?: string
-          status?: string
           updated_at?: string
         }
         Relationships: []
