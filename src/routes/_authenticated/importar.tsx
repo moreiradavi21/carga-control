@@ -112,16 +112,76 @@ function parsePdfLines(lines: string[]): any[] {
   return rows;
 }
 
+// ─── Detecta se uma célula contém marcação "X" ────────────────────────────────
+function isX(val: any): boolean {
+  if (val === null || val === undefined) return false;
+  const s = String(val).trim().toLowerCase();
+  return s === "x" || s === "✓" || s === "sim" || s === "s" || s === "yes";
+}
+
+// ─── Mapeamento de colunas de status (X) → situacao e flags ──────────────────
+const COLUNA_STATUS: Record<string, { situacao?: string; aguarda_guia_pef?: boolean }> = {
+  // Situações
+  "disponivel":              { situacao: "disponivel" },
+  "disponível":              { situacao: "disponivel" },
+  "em cautela":              { situacao: "em_cautela" },
+  "cautela":                 { situacao: "em_cautela" },
+  "extraviado":              { situacao: "extraviado" },
+  "extraviados":             { situacao: "extraviado" },
+  "baixado":                 { situacao: "baixado" },
+  "baixados":                { situacao: "baixado" },
+  "em manutencao":           { situacao: "em_manutencao" },
+  "em manutenção":           { situacao: "em_manutencao" },
+  "manutencao":              { situacao: "em_manutencao" },
+  "manutenção":              { situacao: "em_manutencao" },
+  "em sindicancia":          { situacao: "em_sindicancia" },
+  "em sindicância":          { situacao: "em_sindicancia" },
+  "sindicancia":             { situacao: "em_sindicancia" },
+  "sindicância":             { situacao: "em_sindicancia" },
+  // "Não encontrado/recebido" → sindicância
+  "nao encontrado":          { situacao: "em_sindicancia" },
+  "não encontrado":          { situacao: "em_sindicancia" },
+  "nao encontrado/recebido": { situacao: "em_sindicancia" },
+  "não encontrado/recebido": { situacao: "em_sindicancia" },
+  "nao recebido":            { situacao: "em_sindicancia" },
+  "não recebido":            { situacao: "em_sindicancia" },
+  "nao localizado":          { situacao: "em_sindicancia" },
+  "não localizado":          { situacao: "em_sindicancia" },
+  // PEF / guia de transferência
+  "pef":                     { aguarda_guia_pef: true },
+  "aguarda guia":            { aguarda_guia_pef: true },
+  "guia de transferencia":   { aguarda_guia_pef: true },
+  "guia de transferência":   { aguarda_guia_pef: true },
+  "aguardando guia":         { aguarda_guia_pef: true },
+  "transferencia":           { aguarda_guia_pef: true },
+  "transferência":           { aguarda_guia_pef: true },
+};
+
 // ─── Normaliza chaves de qualquer fonte (CSV/XLSX/PDF) ────────────────────────
 function normalizeRow(r: any) {
-  return {
-    patrimonio:   r.patrimonio   || r.Patrimonio   || r.PATRIMONIO   || null,
-    numero_serie: r.numero_serie || r["numero serie"] || r.NS        || null,
-    descricao:    r.descricao    || r.Descricao    || r.DESCRICAO    || r.descrição || "Sem descrição",
-    marca:        r.marca        || r.Marca        || r.fabricante   || null,
-    modelo:       r.modelo       || r.Modelo       || null,
-    localizacao:  r.localizacao  || r.Localizacao  || r.localização  || null,
+  // Campos de identificação/descrição
+  const base: any = {
+    patrimonio:       r.patrimonio   || r.Patrimonio   || r.PATRIMONIO   || null,
+    numero_serie:     r.numero_serie || r["numero serie"] || r.NS        || null,
+    descricao:        r.descricao    || r.Descricao    || r.DESCRICAO    || r.descrição || "Sem descrição",
+    marca:            r.marca        || r.Marca        || r.fabricante   || null,
+    modelo:           r.modelo       || r.Modelo       || null,
+    localizacao:      r.localizacao  || r.Localizacao  || r.localização  || null,
+    situacao:         "disponivel",    // padrão — pode ser sobrescrito abaixo
+    aguarda_guia_pef: false,
   };
+
+  // Varre todas as colunas procurando marcações X
+  for (const [col, val] of Object.entries(r)) {
+    const colNorm = String(col).toLowerCase().trim();
+    const mapping = COLUNA_STATUS[colNorm];
+    if (mapping && isX(val)) {
+      if (mapping.situacao)         base.situacao         = mapping.situacao;
+      if (mapping.aguarda_guia_pef) base.aguarda_guia_pef = true;
+    }
+  }
+
+  return base;
 }
 
 // ─── Componente principal ──────────────────────────────────────────────────────

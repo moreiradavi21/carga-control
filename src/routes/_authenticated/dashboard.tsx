@@ -1,9 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SITUACOES, situacaoLabel } from "@/lib/sismat/constants";
-import { CheckCircle2, AlertTriangle, Wrench, PackageX, Package, ClipboardList } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Wrench, PackageX, Package, ClipboardList, ArrowRightLeft } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -16,16 +18,33 @@ function Dashboard() {
   const { data: stats } = useQuery({
     queryKey: ["dash-stats"],
     queryFn: async () => {
-      const { data } = await supabase.from("equipamentos").select("situacao, categoria_id, categorias(nome)");
+      const { data } = await supabase
+        .from("equipamentos")
+        .select("situacao, categoria_id, categorias(nome), aguarda_guia_pef");
       return data ?? [];
     },
   });
+
+  const { data: pefMateriais = [] } = useQuery({
+    queryKey: ["dash-pef"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("equipamentos")
+        .select("id, descricao, patrimonio, numero_serie, localizacao, situacao")
+        .eq("aguarda_guia_pef", true)
+        .order("descricao");
+      return data ?? [];
+    },
+  });
+
   const { data: mov } = useQuery({
     queryKey: ["dash-mov"],
     queryFn: async () => {
-      const { data } = await supabase.from("movimentacoes")
+      const { data } = await supabase
+        .from("movimentacoes")
         .select("id, tipo, descricao, created_at, equipamentos(descricao, patrimonio)")
-        .order("created_at", { ascending: false }).limit(10);
+        .order("created_at", { ascending: false })
+        .limit(10);
       return data ?? [];
     },
   });
@@ -43,12 +62,12 @@ function Dashboard() {
   const catData = Object.entries(byCat).map(([name, value]) => ({ name, value }));
 
   const cards = [
-    { label: "Disponíveis", value: counts[0].value, icon: CheckCircle2, color: "text-emerald-600" },
-    { label: "Em cautela", value: counts[1].value, icon: ClipboardList, color: "text-amber-600" },
-    { label: "Extraviados", value: counts[2].value, icon: PackageX, color: "text-red-600" },
-    { label: "Em sindicância", value: counts[3].value, icon: AlertTriangle, color: "text-orange-600" },
-    { label: "Em manutenção", value: counts[5].value, icon: Wrench, color: "text-blue-600" },
-    { label: "Total", value: total, icon: Package, color: "text-primary" },
+    { label: "Disponíveis",   value: counts[0].value, icon: CheckCircle2, color: "text-emerald-600" },
+    { label: "Em cautela",    value: counts[1].value, icon: ClipboardList, color: "text-amber-600" },
+    { label: "Extraviados",   value: counts[2].value, icon: PackageX,      color: "text-red-600" },
+    { label: "Em sindicância",value: counts[3].value, icon: AlertTriangle,  color: "text-orange-600" },
+    { label: "Em manutenção", value: counts[5].value, icon: Wrench,         color: "text-blue-600" },
+    { label: "Total",         value: total,            icon: Package,        color: "text-primary" },
   ];
 
   return (
@@ -58,6 +77,7 @@ function Dashboard() {
         <p className="text-sm text-muted-foreground">Visão geral do material carga do pelotão</p>
       </div>
 
+      {/* Cards de situação */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {cards.map((c) => (
           <Card key={c.label}>
@@ -74,13 +94,59 @@ function Dashboard() {
         ))}
       </div>
 
+      {/* ── Material no PEF aguardando guia de transferência ── */}
+      <Card className={pefMateriais.length > 0 ? "border-amber-400 border-2" : ""}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <ArrowRightLeft className="h-4 w-4 text-amber-600" />
+            Material no PEF — aguardando guia de transferência
+            <Badge variant="outline" className="ml-auto text-amber-700 border-amber-400">
+              {pefMateriais.length} item(ns)
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {pefMateriais.length === 0 ? (
+            <p className="text-sm text-muted-foreground px-6 pb-4">Nenhum material aguardando guia de transferência no momento.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Patrimônio</TableHead>
+                  <TableHead>Nº Série</TableHead>
+                  <TableHead>Localização</TableHead>
+                  <TableHead>Situação</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pefMateriais.map((e: any) => (
+                  <TableRow key={e.id}>
+                    <TableCell className="font-medium">{e.descricao}</TableCell>
+                    <TableCell className="text-sm">{e.patrimonio ?? "—"}</TableCell>
+                    <TableCell className="text-sm font-mono">{e.numero_serie ?? "—"}</TableCell>
+                    <TableCell className="text-sm">{e.localizacao ?? "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="capitalize text-xs">
+                        {situacaoLabel(e.situacao)}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Gráficos */}
       <div className="grid lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader><CardTitle className="text-base">Situação dos equipamentos</CardTitle></CardHeader>
           <CardContent style={{ height: 280 }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={counts.filter(c=>c.value>0)} dataKey="value" nameKey="name" outerRadius={90} label>
+                <Pie data={counts.filter(c => c.value > 0)} dataKey="value" nameKey="name" outerRadius={90} label>
                   {counts.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Pie>
                 <Tooltip />
@@ -105,18 +171,26 @@ function Dashboard() {
         </Card>
       </div>
 
+      {/* Últimas movimentações */}
       <Card>
         <CardHeader><CardTitle className="text-base">Últimas movimentações</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {(mov ?? []).length === 0 && <p className="text-sm text-muted-foreground">Nenhuma movimentação registrada.</p>}
+            {(mov ?? []).length === 0 && (
+              <p className="text-sm text-muted-foreground">Nenhuma movimentação registrada.</p>
+            )}
             {(mov ?? []).map((m: any) => (
               <div key={m.id} className="flex items-start justify-between border-b pb-2 last:border-0">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{m.equipamentos?.descricao ?? "—"} <span className="text-xs text-muted-foreground">({m.equipamentos?.patrimonio ?? "s/n"})</span></p>
+                  <p className="text-sm font-medium truncate">
+                    {m.equipamentos?.descricao ?? "—"}{" "}
+                    <span className="text-xs text-muted-foreground">({m.equipamentos?.patrimonio ?? "s/n"})</span>
+                  </p>
                   <p className="text-xs text-muted-foreground">{m.descricao}</p>
                 </div>
-                <span className="text-xs text-muted-foreground whitespace-nowrap ml-3">{formatDistanceToNow(new Date(m.created_at), { addSuffix: true, locale: ptBR })}</span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap ml-3">
+                  {formatDistanceToNow(new Date(m.created_at), { addSuffix: true, locale: ptBR })}
+                </span>
               </div>
             ))}
           </div>
