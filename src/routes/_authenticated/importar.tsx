@@ -119,26 +119,41 @@ function isX(val: any): boolean {
   return s === "x" || s === "✓" || s === "sim" || s === "s" || s === "yes";
 }
 
+// ─── Limpa valores: remove traços e espaços que significam "vazio" ────────────
+function cleanVal(val: any): string | null {
+  if (val === null || val === undefined) return null;
+  const s = String(val).trim();
+  if (s === "" || s === "-" || s === "–" || s === "—" || s === "." || s.toLowerCase() === "n/a") return null;
+  return s;
+}
+
 // ─── Mapeamento de colunas de status (X) → situacao e flags ──────────────────
 const COLUNA_STATUS: Record<string, { situacao?: string; aguarda_guia_pef?: boolean }> = {
-  // Situações
+  // Presente no pelotão → disponível
+  "pel com":                 { situacao: "disponivel" },
+  "pelcom":                  { situacao: "disponivel" },
+  "pel.com":                 { situacao: "disponivel" },
   "disponivel":              { situacao: "disponivel" },
   "disponível":              { situacao: "disponivel" },
+  // Em cautela / serviço externo
   "em cautela":              { situacao: "em_cautela" },
   "cautela":                 { situacao: "em_cautela" },
+  // Extraviado
   "extraviado":              { situacao: "extraviado" },
   "extraviados":             { situacao: "extraviado" },
+  // Baixado
   "baixado":                 { situacao: "baixado" },
   "baixados":                { situacao: "baixado" },
+  // Manutenção
   "em manutencao":           { situacao: "em_manutencao" },
   "em manutenção":           { situacao: "em_manutencao" },
   "manutencao":              { situacao: "em_manutencao" },
   "manutenção":              { situacao: "em_manutencao" },
+  // Sindicância
   "em sindicancia":          { situacao: "em_sindicancia" },
   "em sindicância":          { situacao: "em_sindicancia" },
   "sindicancia":             { situacao: "em_sindicancia" },
   "sindicância":             { situacao: "em_sindicancia" },
-  // "Não encontrado/recebido" → sindicância
   "nao encontrado":          { situacao: "em_sindicancia" },
   "não encontrado":          { situacao: "em_sindicancia" },
   "nao encontrado/recebido": { situacao: "em_sindicancia" },
@@ -159,15 +174,35 @@ const COLUNA_STATUS: Record<string, { situacao?: string; aguarda_guia_pef?: bool
 
 // ─── Normaliza chaves de qualquer fonte (CSV/XLSX/PDF) ────────────────────────
 function normalizeRow(r: any) {
-  // Campos de identificação/descrição
+  // Cria índice normalizado (lowercase) para busca flexível
+  const idx: Record<string, any> = {};
+  for (const [k, v] of Object.entries(r)) {
+    idx[String(k).toLowerCase().trim()] = v;
+  }
+
+  // Coluna "serviço" pode conter localização (texto) ou X (status)
+  const servicoRaw = idx["serviço"] ?? idx["servico"] ?? idx["serv."] ?? idx["serv"];
+  const locFromServico = servicoRaw && !isX(servicoRaw) ? cleanVal(servicoRaw) : null;
+
   const base: any = {
-    patrimonio:       r.patrimonio   || r.Patrimonio   || r.PATRIMONIO   || null,
-    numero_serie:     r.numero_serie || r["numero serie"] || r.NS        || null,
-    descricao:        r.descricao    || r.Descricao    || r.DESCRICAO    || r.descrição || "Sem descrição",
-    marca:            r.marca        || r.Marca        || r.fabricante   || null,
-    modelo:           r.modelo       || r.Modelo       || null,
-    localizacao:      r.localizacao  || r.Localizacao  || r.localização  || null,
-    situacao:         "disponivel",    // padrão — pode ser sobrescrito abaixo
+    // Patrimônio — aceita "N° PATRIMONIO", "N° PATRIMÔNIO", "Nº PATRIMÔNIO", "patrimônio", etc.
+    patrimonio: cleanVal(
+      idx["n° patrimonio"] ?? idx["n° patrimônio"] ?? idx["nº patrimônio"] ??
+      idx["n.° patrimônio"] ?? idx["patrimonio"] ?? idx["patrimônio"] ?? idx["pat"] ?? null
+    ),
+    // Número de série — aceita "N° SERIE", "N° SÉRIE", "Nº SÉRIE", etc.
+    numero_serie: cleanVal(
+      idx["n° serie"] ?? idx["n° série"] ?? idx["nº série"] ??
+      idx["n.° série"] ?? idx["numero serie"] ?? idx["numero_serie"] ?? idx["ns"] ?? null
+    ),
+    // Descrição — aceita "EQUIPAMENTO", "DESCRIÇÃO", "ITEM", etc.
+    descricao: cleanVal(
+      idx["equipamento"] ?? idx["descricao"] ?? idx["descrição"] ?? idx["item"] ?? idx["descricao"]
+    ) ?? "Sem descrição",
+    marca:      cleanVal(idx["marca"] ?? idx["fabricante"] ?? null),
+    modelo:     cleanVal(idx["modelo"] ?? null),
+    localizacao: cleanVal(idx["localizacao"] ?? idx["localização"] ?? idx["local"] ?? null) ?? locFromServico,
+    situacao:         "disponivel",   // padrão — sobrescrito abaixo se X detectado
     aguarda_guia_pef: false,
   };
 
