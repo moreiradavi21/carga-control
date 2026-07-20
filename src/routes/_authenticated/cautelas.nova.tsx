@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { ArrowLeft, Save, PenLine } from "lucide-react";
+import { ArrowLeft, Save, PenLine, Search, X } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/cautelas/nova")({ component: NovaCautela });
 
@@ -53,6 +53,7 @@ function NovaCautela() {
   const [observacoes, setObservacoes] = useState<string>("");
   const [dataDesc, setDataDesc] = useState<string>("");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [busca, setBusca] = useState("");
   const [saving, setSaving] = useState(false);
 
   const { data: companhias = [] } = useQuery({
@@ -76,6 +77,16 @@ function NovaCautela() {
     setSelected((s) => ({ ...s, [id]: !s[id] }));
   }
   const selectedIds = Object.keys(selected).filter((k) => selected[k]);
+
+  const equipsFiltrados = busca.trim()
+    ? equips.filter((e: any) => {
+        const termo = busca.toLowerCase();
+        return (
+          e.descricao?.toLowerCase().includes(termo) ||
+          e.numero_serie?.toLowerCase().includes(termo)
+        );
+      })
+    : equips;
 
   async function save() {
     if (!militarResp.trim()) return toast.error("Informe o militar responsável");
@@ -185,9 +196,35 @@ function NovaCautela() {
       {/* ── Equipamentos ── */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">
-            Equipamentos ({selectedIds.length} selecionado(s))
-          </CardTitle>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="text-base">
+              Equipamentos ({selectedIds.length} selecionado(s))
+            </CardTitle>
+            {/* Barra de busca */}
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+              <Input
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Buscar por descrição ou nº série..."
+                className="pl-8 pr-8 h-8 text-sm"
+              />
+              {busca && (
+                <button
+                  type="button"
+                  onClick={() => setBusca("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+          {busca && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {equipsFiltrados.length} resultado(s) para &ldquo;{busca}&rdquo;
+            </p>
+          )}
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -201,7 +238,7 @@ function NovaCautela() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {equips.map((e: any) => (
+              {equipsFiltrados.map((e: any) => (
                 <TableRow key={e.id} className="cursor-pointer" onClick={() => toggle(e.id)}>
                   <TableCell>
                     <Checkbox checked={!!selected[e.id]} onCheckedChange={() => toggle(e.id)} />
@@ -214,10 +251,10 @@ function NovaCautela() {
                   </TableCell>
                 </TableRow>
               ))}
-              {equips.length === 0 && (
+              {equipsFiltrados.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
-                    Nenhum equipamento disponível
+                    {busca ? `Nenhum equipamento encontrado para "${busca}"` : "Nenhum equipamento disponível"}
                   </TableCell>
                 </TableRow>
               )}
