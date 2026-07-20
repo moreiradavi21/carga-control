@@ -30,7 +30,7 @@ function Auditoria() {
   const [saving, setSaving] = useState<Record<string, boolean>>({});
 
   // Materiais em sindicância
-  const { data: sindicancia = [], isLoading } = useQuery({
+  const { data: sindicanciaData, isLoading } = useQuery({
     queryKey: ["auditorio-sindicancia"],
     queryFn: async () => {
       try {
@@ -45,12 +45,16 @@ function Auditoria() {
       }
     },
   });
+  const sindicancia = sindicanciaData ?? EMPTY_EQUIPS;
 
   useEffect(() => {
-    const init: Record<string, string> = {};
-    sindicancia.forEach((e) => { init[e.id] = e.notas_auditorio ?? ""; });
-    setNotas((prev) => ({ ...init, ...prev }));
-  }, [sindicancia]);
+    if (!sindicanciaData) return;
+    setNotas((prev) => {
+      const init: Record<string, string> = {};
+      sindicanciaData.forEach((e) => { init[e.id] = e.notas_auditorio ?? ""; });
+      return { ...init, ...prev };
+    });
+  }, [sindicanciaData]);
 
   // Logs de auditoria
   const { data: logs = [] } = useQuery({
