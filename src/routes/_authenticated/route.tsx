@@ -1,8 +1,15 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/sismat/use-auth";
-import { SidebarProvider, Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarHeader, SidebarTrigger, SidebarFooter } from "@/components/ui/sidebar";
-import { LayoutDashboard, Radio, ClipboardList, FileUp, Users, FileText, ShieldAlert, LogOut, Shield, Clock } from "lucide-react";
+import {
+  SidebarProvider, Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
+  SidebarGroupLabel, SidebarMenu, SidebarMenuItem, SidebarMenuButton,
+  SidebarHeader, SidebarTrigger, SidebarFooter,
+} from "@/components/ui/sidebar";
+import {
+  LayoutDashboard, Radio, ClipboardList, FileUp, Users, FileText,
+  ShieldAlert, LogOut, Shield, Clock, Wifi, Satellite, Phone, Globe,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -31,7 +38,6 @@ export const Route = createFileRoute("/_authenticated")({
       if (error || !data?.user) throw redirect({ to: "/auth" });
       return { user: data.user };
     } catch (e: any) {
-      // Redireciona para /auth se não há sessão; relança qualquer redirect
       if (e?.to) throw e;
       throw redirect({ to: "/auth" });
     }
@@ -41,15 +47,23 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 const navBase = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/dashboard",    label: "Dashboard",    icon: LayoutDashboard },
   { to: "/equipamentos", label: "Equipamentos", icon: Radio },
-  { to: "/cautelas", label: "Cautelas", icon: ClipboardList },
+  { to: "/cautelas",     label: "Cautelas",     icon: ClipboardList },
 ];
+
 const navAdmin = [
-  { to: "/importar", label: "Importar", icon: FileUp },
-  { to: "/usuarios", label: "Usuários", icon: Users },
+  { to: "/importar",   label: "Importar",   icon: FileUp },
+  { to: "/usuarios",   label: "Usuários",   icon: Users },
   { to: "/relatorios", label: "Relatórios", icon: FileText },
-  { to: "/auditoria", label: "Auditoria", icon: ShieldAlert },
+  { to: "/auditoria",  label: "Auditoria",  icon: ShieldAlert },
+];
+
+const navContratos = [
+  { to: "/contrato-spot-x",    label: "Spot X",    icon: Wifi },
+  { to: "/contrato-satelital", label: "Satelital", icon: Satellite },
+  { to: "/contrato-telefonia", label: "Telefonia", icon: Phone },
+  { to: "/contrato-starlink",  label: "Starlink",  icon: Globe },
 ];
 
 function AuthLayout() {
@@ -67,7 +81,6 @@ function AuthLayout() {
     return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando...</div>;
   }
 
-  // Usuário com cadastro pendente de aprovação
   if (status === "pendente") {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-sidebar via-primary to-sidebar">
@@ -92,7 +105,6 @@ function AuthLayout() {
     );
   }
 
-  // Usuário rejeitado
   if (status === "rejeitado") {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-sidebar via-primary to-sidebar">
@@ -128,7 +140,9 @@ function AuthLayout() {
               </div>
             </div>
           </SidebarHeader>
+
           <SidebarContent>
+            {/* ── Operacional ── */}
             <SidebarGroup>
               <SidebarGroupLabel>Operacional</SidebarGroupLabel>
               <SidebarGroupContent>
@@ -146,13 +160,40 @@ function AuthLayout() {
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
+
+            {/* ── Contratos (somente comandante) ── */}
+            {role === "comandante" && (
+              <SidebarGroup>
+                <SidebarGroupLabel>Contratos</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {navContratos.map((it) => (
+                      <SidebarMenuItem key={it.to}>
+                        <SidebarMenuButton asChild isActive={pathname.startsWith(it.to)} tooltip={it.label}>
+                          <Link to={it.to}>
+                            <it.icon className="h-4 w-4" />
+                            <span>{it.label}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
           </SidebarContent>
+
           <SidebarFooter className="border-t border-sidebar-border">
             <div className="px-2 py-2 text-xs text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
               <div className="font-medium text-sidebar-foreground truncate">{fullName}</div>
               <div className="capitalize">{role}</div>
             </div>
-            <Button variant="ghost" size="sm" onClick={signOut} className="justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={signOut}
+              className="justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            >
               <LogOut className="h-4 w-4" />
               <span className="group-data-[collapsible=icon]:hidden">Sair</span>
             </Button>
@@ -162,7 +203,9 @@ function AuthLayout() {
         <div className="flex-1 flex flex-col min-w-0">
           <header className="h-14 border-b bg-card flex items-center px-4 gap-3 sticky top-0 z-10">
             <SidebarTrigger />
-            <h1 className="text-sm font-semibold text-muted-foreground">Sistema de Gestão de Material Carga</h1>
+            <h1 className="text-sm font-semibold text-muted-foreground">
+              Sistema de Gestão de Material Carga
+            </h1>
           </header>
           <main className="flex-1 p-6 overflow-auto">
             <Outlet />
