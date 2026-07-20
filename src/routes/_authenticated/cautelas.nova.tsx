@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import SignatureCanvas from "react-signature-canvas";
 import { toast } from "sonner";
-import { ArrowLeft, Eraser, Save } from "lucide-react";
+import { Eraser, Save } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/cautelas/nova")({ component: NovaCautela });
