@@ -24,6 +24,8 @@ type Equipamento = {
   notas_auditorio: string | null;
 };
 
+const EMPTY_EQUIPS: Equipamento[] = [];
+
 function Auditoria() {
   const queryClient = useQueryClient();
   const [notas, setNotas] = useState<Record<string, string>>({});
@@ -113,7 +115,7 @@ function Auditoria() {
             </Card>
           )}
 
-          {sindicancia.map((equip) => (
+          {sindicancia.map((equip: Equipamento) => (
             <Card key={equip.id} className="border-orange-300 border">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2 flex-wrap">
