@@ -12,7 +12,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import SignatureCanvas from "react-signature-canvas";
 import { toast } from "sonner";
-import { ArrowLeft, Eraser, Save } from "lucide-react";
+import { Eraser, Save } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/cautelas/nova")({ component: NovaCautela });
 
@@ -86,12 +87,14 @@ function NovaCautela() {
   }
 
   return (
-    <div className="space-y-4 max-w-5xl">
-      <Button variant="ghost" onClick={() => nav({ to: "/cautelas" })}><ArrowLeft className="h-4 w-4" /> Voltar</Button>
-      <div>
-        <h2 className="text-2xl font-bold">Nova Cautela</h2>
-        <p className="text-sm text-muted-foreground">Emissão de termo de cautela de material</p>
-      </div>
+    <Dialog open onOpenChange={(open) => { if (!open) nav({ to: "/cautelas" }); }}>
+      <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader>
+          <DialogTitle>Nova Cautela</DialogTitle>
+          <p className="text-sm text-muted-foreground">Emissão de termo de cautela de material</p>
+        </DialogHeader>
+
+        <div className="space-y-4">
 
       <Card>
         <CardHeader><CardTitle className="text-base">Dados da cautela</CardTitle></CardHeader>
@@ -126,7 +129,14 @@ function NovaCautela() {
             <TableBody>
               {equips.map((e: any) => (
                 <TableRow key={e.id} className="cursor-pointer" onClick={() => toggle(e.id)}>
-                  <TableCell><Checkbox checked={!!selected[e.id]} onCheckedChange={() => toggle(e.id)} /></TableCell>
+                  <TableCell>
+                    <Checkbox
+                      checked={!!selected[e.id]}
+                      onClick={(event) => event.stopPropagation()}
+                      onCheckedChange={(checked) => setSelected((current) => ({ ...current, [e.id]: checked === true }))}
+                      aria-label={`Selecionar ${e.descricao}`}
+                    />
+                  </TableCell>
                   <TableCell className="font-mono text-xs">{e.patrimonio ?? "—"}</TableCell>
                   <TableCell className="font-mono text-xs">{e.numero_serie ?? "—"}</TableCell>
                   <TableCell>{e.descricao}</TableCell>
@@ -157,6 +167,8 @@ function NovaCautela() {
         <Button variant="outline" onClick={()=>nav({ to: "/cautelas" })}>Cancelar</Button>
         <Button disabled={saving} onClick={save}><Save className="h-4 w-4" /> {saving ? "Emitindo..." : "Emitir cautela"}</Button>
       </div>
-    </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,8 +27,9 @@ function CautelasPage() {
   });
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Cautelas</h2>
           <p className="text-sm text-muted-foreground">{cautelas.length} cautela(s) registrada(s)</p>
@@ -72,7 +73,9 @@ function CautelasPage() {
             </TableBody>
           </Table>
         </CardContent>
-      </Card>
-    </div>
+        </Card>
+      </div>
+      <Outlet />
+    </>
   );
 }
