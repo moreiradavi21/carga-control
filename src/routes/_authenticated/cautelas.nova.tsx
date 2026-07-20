@@ -27,9 +27,7 @@ function LinhaAssinatura({
 }) {
   return (
     <div className="flex flex-col gap-3 py-2">
-      {/* Campo extra (ex.: data) antes da linha */}
       {children}
-      {/* Linha para assinar */}
       <div className="border-b-2 border-foreground/70 w-full min-h-[48px]" />
       <div className="text-center space-y-0.5">
         <p className="text-xs font-semibold uppercase tracking-wide">{titulo}</p>
@@ -239,25 +237,21 @@ function NovaCautela() {
         <CardContent>
           <div className="grid md:grid-cols-2 gap-x-10 gap-y-6">
 
-            {/* 1 — Quem fez a cautela */}
             <LinhaAssinatura
               titulo="Quem fez a cautela"
               subtitulo="Responsável pela emissão do termo"
             />
 
-            {/* 2 — Quem pegou a cautela */}
             <LinhaAssinatura
               titulo="Quem pegou a cautela"
               subtitulo="Militar que retirou o material"
             />
 
-            {/* 3 — Cmt do Pelotão */}
             <LinhaAssinatura
               titulo="Cmt do Pelotão"
               subtitulo="Ciência e autorização do Comandante"
             />
 
-            {/* 4 — Recebimento do material descautelado */}
             <LinhaAssinatura
               titulo="Recebimento do material descautelado"
               subtitulo="Data e assinatura de quem recebeu o material devolvido"
