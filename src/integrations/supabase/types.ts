@@ -225,6 +225,39 @@ export type Database = {
         }
         Relationships: []
       }
+      contratos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_inicio: string
+          data_validade: string
+          fornecedor: string
+          id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_inicio: string
+          data_validade: string
+          fornecedor: string
+          id?: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_inicio?: string
+          data_validade?: string
+          fornecedor?: string
+          id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       equipamentos: {
         Row: {
           aguarda_guia_pef: boolean
@@ -352,6 +385,50 @@ export type Database = {
             columns: ["equipamento_id"]
             isOneToOne: false
             referencedRelation: "equipamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pagamentos_contrato: {
+        Row: {
+          ano: number
+          arquivo_nome: string | null
+          arquivo_url: string | null
+          contrato_id: string
+          created_at: string
+          id: string
+          mes: number
+          pago: boolean
+          updated_at: string
+        }
+        Insert: {
+          ano: number
+          arquivo_nome?: string | null
+          arquivo_url?: string | null
+          contrato_id: string
+          created_at?: string
+          id?: string
+          mes: number
+          pago?: boolean
+          updated_at?: string
+        }
+        Update: {
+          ano?: number
+          arquivo_nome?: string | null
+          arquivo_url?: string | null
+          contrato_id?: string
+          created_at?: string
+          id?: string
+          mes?: number
+          pago?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_contrato_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
             referencedColumns: ["id"]
           },
         ]
