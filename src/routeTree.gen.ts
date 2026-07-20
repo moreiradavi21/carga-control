@@ -9,46 +9,74 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
-import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
-import { Route as AuthenticatedImportarRouteImport } from './routes/_authenticated/importar'
-import { Route as AuthenticatedEquipamentosRouteImport } from './routes/_authenticated/equipamentos'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedCautelasRouteImport } from './routes/_authenticated/cautelas'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
-import { Route as AuthenticatedCautelasNovaRouteImport } from './routes/_authenticated/cautelas.nova'
+import { Route as AuthenticatedCautelasRouteImport } from './routes/_authenticated/cautelas'
+import { Route as AuthenticatedContratoSatelitalRouteImport } from './routes/_authenticated/contrato-satelital'
+import { Route as AuthenticatedContratoSpotXRouteImport } from './routes/_authenticated/contrato-spot-x'
+import { Route as AuthenticatedContratoStarlinkRouteImport } from './routes/_authenticated/contrato-starlink'
+import { Route as AuthenticatedContratoTelefoniaRouteImport } from './routes/_authenticated/contrato-telefonia'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedEquipamentosRouteImport } from './routes/_authenticated/equipamentos'
+import { Route as AuthenticatedImportarRouteImport } from './routes/_authenticated/importar'
+import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
+import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedCautelasIdRouteImport } from './routes/_authenticated/cautelas.$id'
+import { Route as AuthenticatedCautelasNovaRouteImport } from './routes/_authenticated/cautelas.nova'
 
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
-  id: '/usuarios',
-  path: '/usuarios',
+const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
+  id: '/auditoria',
+  path: '/auditoria',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedRelatoriosRoute = AuthenticatedRelatoriosRouteImport.update({
-  id: '/relatorios',
-  path: '/relatorios',
+const AuthenticatedCautelasRoute = AuthenticatedCautelasRouteImport.update({
+  id: '/cautelas',
+  path: '/cautelas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedImportarRoute = AuthenticatedImportarRouteImport.update({
-  id: '/importar',
-  path: '/importar',
+const AuthenticatedContratoSatelitalRoute =
+  AuthenticatedContratoSatelitalRouteImport.update({
+    id: '/contrato-satelital',
+    path: '/contrato-satelital',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedContratoSpotXRoute =
+  AuthenticatedContratoSpotXRouteImport.update({
+    id: '/contrato-spot-x',
+    path: '/contrato-spot-x',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedContratoStarlinkRoute =
+  AuthenticatedContratoStarlinkRouteImport.update({
+    id: '/contrato-starlink',
+    path: '/contrato-starlink',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedContratoTelefoniaRoute =
+  AuthenticatedContratoTelefoniaRouteImport.update({
+    id: '/contrato-telefonia',
+    path: '/contrato-telefonia',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedEquipamentosRoute =
@@ -57,20 +85,25 @@ const AuthenticatedEquipamentosRoute =
     path: '/equipamentos',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+const AuthenticatedImportarRoute = AuthenticatedImportarRouteImport.update({
+  id: '/importar',
+  path: '/importar',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedCautelasRoute = AuthenticatedCautelasRouteImport.update({
-  id: '/cautelas',
-  path: '/cautelas',
+const AuthenticatedRelatoriosRoute = AuthenticatedRelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
-  id: '/auditoria',
-  path: '/auditoria',
+const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCautelasIdRoute = AuthenticatedCautelasIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthenticatedCautelasRoute,
 } as any)
 const AuthenticatedCautelasNovaRoute =
   AuthenticatedCautelasNovaRouteImport.update({
@@ -78,17 +111,16 @@ const AuthenticatedCautelasNovaRoute =
     path: '/nova',
     getParentRoute: () => AuthenticatedCautelasRoute,
   } as any)
-const AuthenticatedCautelasIdRoute = AuthenticatedCautelasIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AuthenticatedCautelasRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/cautelas': typeof AuthenticatedCautelasRouteWithChildren
+  '/contrato-satelital': typeof AuthenticatedContratoSatelitalRoute
+  '/contrato-spot-x': typeof AuthenticatedContratoSpotXRoute
+  '/contrato-starlink': typeof AuthenticatedContratoStarlinkRoute
+  '/contrato-telefonia': typeof AuthenticatedContratoTelefoniaRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/equipamentos': typeof AuthenticatedEquipamentosRoute
   '/importar': typeof AuthenticatedImportarRoute
@@ -102,6 +134,10 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/cautelas': typeof AuthenticatedCautelasRouteWithChildren
+  '/contrato-satelital': typeof AuthenticatedContratoSatelitalRoute
+  '/contrato-spot-x': typeof AuthenticatedContratoSpotXRoute
+  '/contrato-starlink': typeof AuthenticatedContratoStarlinkRoute
+  '/contrato-telefonia': typeof AuthenticatedContratoTelefoniaRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/equipamentos': typeof AuthenticatedEquipamentosRoute
   '/importar': typeof AuthenticatedImportarRoute
@@ -117,6 +153,10 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
   '/_authenticated/cautelas': typeof AuthenticatedCautelasRouteWithChildren
+  '/_authenticated/contrato-satelital': typeof AuthenticatedContratoSatelitalRoute
+  '/_authenticated/contrato-spot-x': typeof AuthenticatedContratoSpotXRoute
+  '/_authenticated/contrato-starlink': typeof AuthenticatedContratoStarlinkRoute
+  '/_authenticated/contrato-telefonia': typeof AuthenticatedContratoTelefoniaRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/equipamentos': typeof AuthenticatedEquipamentosRoute
   '/_authenticated/importar': typeof AuthenticatedImportarRoute
@@ -132,6 +172,10 @@ export interface FileRouteTypes {
     | '/auth'
     | '/auditoria'
     | '/cautelas'
+    | '/contrato-satelital'
+    | '/contrato-spot-x'
+    | '/contrato-starlink'
+    | '/contrato-telefonia'
     | '/dashboard'
     | '/equipamentos'
     | '/importar'
@@ -145,6 +189,10 @@ export interface FileRouteTypes {
     | '/auth'
     | '/auditoria'
     | '/cautelas'
+    | '/contrato-satelital'
+    | '/contrato-spot-x'
+    | '/contrato-starlink'
+    | '/contrato-telefonia'
     | '/dashboard'
     | '/equipamentos'
     | '/importar'
@@ -159,6 +207,10 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/auditoria'
     | '/_authenticated/cautelas'
+    | '/_authenticated/contrato-satelital'
+    | '/_authenticated/contrato-spot-x'
+    | '/_authenticated/contrato-starlink'
+    | '/_authenticated/contrato-telefonia'
     | '/_authenticated/dashboard'
     | '/_authenticated/equipamentos'
     | '/_authenticated/importar'
@@ -176,11 +228,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -190,46 +242,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/usuarios': {
-      id: '/_authenticated/usuarios'
-      path: '/usuarios'
-      fullPath: '/usuarios'
-      preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/relatorios': {
-      id: '/_authenticated/relatorios'
-      path: '/relatorios'
-      fullPath: '/relatorios'
-      preLoaderRoute: typeof AuthenticatedRelatoriosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/importar': {
-      id: '/_authenticated/importar'
-      path: '/importar'
-      fullPath: '/importar'
-      preLoaderRoute: typeof AuthenticatedImportarRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/equipamentos': {
-      id: '/_authenticated/equipamentos'
-      path: '/equipamentos'
-      fullPath: '/equipamentos'
-      preLoaderRoute: typeof AuthenticatedEquipamentosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+    '/_authenticated/auditoria': {
+      id: '/_authenticated/auditoria'
+      path: '/auditoria'
+      fullPath: '/auditoria'
+      preLoaderRoute: typeof AuthenticatedAuditoriaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/cautelas': {
@@ -239,25 +263,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCautelasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/auditoria': {
-      id: '/_authenticated/auditoria'
-      path: '/auditoria'
-      fullPath: '/auditoria'
-      preLoaderRoute: typeof AuthenticatedAuditoriaRouteImport
+    '/_authenticated/contrato-satelital': {
+      id: '/_authenticated/contrato-satelital'
+      path: '/contrato-satelital'
+      fullPath: '/contrato-satelital'
+      preLoaderRoute: typeof AuthenticatedContratoSatelitalRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/cautelas/nova': {
-      id: '/_authenticated/cautelas/nova'
-      path: '/nova'
-      fullPath: '/cautelas/nova'
-      preLoaderRoute: typeof AuthenticatedCautelasNovaRouteImport
-      parentRoute: typeof AuthenticatedCautelasRoute
+    '/_authenticated/contrato-spot-x': {
+      id: '/_authenticated/contrato-spot-x'
+      path: '/contrato-spot-x'
+      fullPath: '/contrato-spot-x'
+      preLoaderRoute: typeof AuthenticatedContratoSpotXRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/contrato-starlink': {
+      id: '/_authenticated/contrato-starlink'
+      path: '/contrato-starlink'
+      fullPath: '/contrato-starlink'
+      preLoaderRoute: typeof AuthenticatedContratoStarlinkRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/contrato-telefonia': {
+      id: '/_authenticated/contrato-telefonia'
+      path: '/contrato-telefonia'
+      fullPath: '/contrato-telefonia'
+      preLoaderRoute: typeof AuthenticatedContratoTelefoniaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/equipamentos': {
+      id: '/_authenticated/equipamentos'
+      path: '/equipamentos'
+      fullPath: '/equipamentos'
+      preLoaderRoute: typeof AuthenticatedEquipamentosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/importar': {
+      id: '/_authenticated/importar'
+      path: '/importar'
+      fullPath: '/importar'
+      preLoaderRoute: typeof AuthenticatedImportarRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/relatorios': {
+      id: '/_authenticated/relatorios'
+      path: '/relatorios'
+      fullPath: '/relatorios'
+      preLoaderRoute: typeof AuthenticatedRelatoriosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/usuarios': {
+      id: '/_authenticated/usuarios'
+      path: '/usuarios'
+      fullPath: '/usuarios'
+      preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/cautelas/$id': {
       id: '/_authenticated/cautelas/$id'
       path: '/$id'
       fullPath: '/cautelas/$id'
       preLoaderRoute: typeof AuthenticatedCautelasIdRouteImport
+      parentRoute: typeof AuthenticatedCautelasRoute
+    }
+    '/_authenticated/cautelas/nova': {
+      id: '/_authenticated/cautelas/nova'
+      path: '/nova'
+      fullPath: '/cautelas/nova'
+      preLoaderRoute: typeof AuthenticatedCautelasNovaRouteImport
       parentRoute: typeof AuthenticatedCautelasRoute
     }
   }
@@ -281,6 +361,10 @@ const AuthenticatedCautelasRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
   AuthenticatedCautelasRoute: typeof AuthenticatedCautelasRouteWithChildren
+  AuthenticatedContratoSatelitalRoute: typeof AuthenticatedContratoSatelitalRoute
+  AuthenticatedContratoSpotXRoute: typeof AuthenticatedContratoSpotXRoute
+  AuthenticatedContratoStarlinkRoute: typeof AuthenticatedContratoStarlinkRoute
+  AuthenticatedContratoTelefoniaRoute: typeof AuthenticatedContratoTelefoniaRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEquipamentosRoute: typeof AuthenticatedEquipamentosRoute
   AuthenticatedImportarRoute: typeof AuthenticatedImportarRoute
@@ -291,6 +375,10 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAuditoriaRoute: AuthenticatedAuditoriaRoute,
   AuthenticatedCautelasRoute: AuthenticatedCautelasRouteWithChildren,
+  AuthenticatedContratoSatelitalRoute: AuthenticatedContratoSatelitalRoute,
+  AuthenticatedContratoSpotXRoute: AuthenticatedContratoSpotXRoute,
+  AuthenticatedContratoStarlinkRoute: AuthenticatedContratoStarlinkRoute,
+  AuthenticatedContratoTelefoniaRoute: AuthenticatedContratoTelefoniaRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEquipamentosRoute: AuthenticatedEquipamentosRoute,
   AuthenticatedImportarRoute: AuthenticatedImportarRoute,
