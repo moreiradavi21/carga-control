@@ -6,14 +6,38 @@ import { LayoutDashboard, Radio, ClipboardList, FileUp, Users, FileText, ShieldA
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
+function PageError({ error, reset }: { error: Error; reset: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4 p-8">
+      <p className="text-sm text-muted-foreground text-center max-w-sm">
+        Esta página encontrou um problema. Tente novamente ou recarregue.
+      </p>
+      <div className="flex gap-2">
+        <Button variant="outline" onClick={reset}>Tentar novamente</Button>
+        <Button variant="ghost" onClick={() => window.location.reload()}>Recarregar</Button>
+      </div>
+      {import.meta.env.DEV && (
+        <pre className="text-xs text-destructive max-w-sm overflow-auto">{error.message}</pre>
+      )}
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/auth" });
-    return { user: data.user };
+    try {
+      const { data, error } = await supabase.auth.getUser();
+      if (error || !data?.user) throw redirect({ to: "/auth" });
+      return { user: data.user };
+    } catch (e: any) {
+      // Redireciona para /auth se não há sessão; relança qualquer redirect
+      if (e?.to) throw e;
+      throw redirect({ to: "/auth" });
+    }
   },
   component: AuthLayout,
+  errorComponent: PageError,
 });
 
 const navBase = [

@@ -33,12 +33,16 @@ function Auditoria() {
   const { data: sindicancia = [], isLoading } = useQuery({
     queryKey: ["auditorio-sindicancia"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("equipamentos")
-        .select("id, descricao, patrimonio, numero_serie, localizacao, notas_auditorio")
-        .eq("situacao", "em_sindicancia")
-        .order("descricao");
-      return (data ?? []) as Equipamento[];
+      try {
+        const { data } = await supabase
+          .from("equipamentos")
+          .select("id, descricao, patrimonio, numero_serie, localizacao, notas_auditorio")
+          .eq("situacao", "em_sindicancia")
+          .order("descricao");
+        return (data ?? []) as Equipamento[];
+      } catch {
+        return [] as Equipamento[];
+      }
     },
   });
 
