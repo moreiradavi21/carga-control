@@ -1,14 +1,16 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/sismat/use-auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, FileText, RotateCcw } from "lucide-react";
+import { Plus, FileText, RotateCcw, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 import { DescautelaModal } from "@/components/sismat/DescautelaModal";
 
 export const Route = createFileRoute("/_authenticated/cautelas")({ component: CautelasPage });
@@ -25,6 +27,8 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 function CautelasPage() {
+  const { role } = useAuth();
+  const qc = useQueryClient();
   const [descautelaId, setDescautelaId] = useState<string | null>(null);
 
   const { data: cautelas = [] } = useQuery({
@@ -32,11 +36,46 @@ function CautelasPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("cautelas")
-        .select("*, companhias(nome), cautela_itens(id)")
+        .select("*, companhias(nome), cautela_itens(id, equipamento_id)")
         .order("created_at", { ascending: false });
       return data ?? [];
     },
   });
+
+  async function excluirCautela(c: any) {
+    const confirmMsg =
+      c.status === "ativa"
+        ? `Excluir a cautela ${c.numero}? Os equipamentos cautelados voltarão para Disponível. Esta ação não pode ser desfeita.`
+        : `Excluir a cautela ${c.numero}? Esta ação não pode ser desfeita.`;
+
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      // Se a cautela era ativa, liberar os equipamentos vinculados
+      if (c.status === "ativa") {
+        const equipIds = (c.cautela_itens ?? [])
+          .map((it: any) => it.equipamento_id)
+          .filter(Boolean);
+        if (equipIds.length > 0) {
+          await supabase
+            .from("equipamentos")
+            .update({ situacao: "disponivel" })
+            .in("id", equipIds);
+        }
+      }
+
+      // Excluir a cautela (cascade remove cautela_itens automaticamente)
+      const { error } = await supabase.from("cautelas").delete().eq("id", c.id);
+      if (error) throw error;
+
+      toast.success(`Cautela ${c.numero} excluída.`);
+      qc.invalidateQueries({ queryKey: ["cautelas"] });
+      qc.invalidateQueries({ queryKey: ["equipamentos"] });
+      qc.invalidateQueries({ queryKey: ["dash-stats"] });
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao excluir cautela.");
+    }
+  }
 
   return (
     <>
@@ -84,12 +123,14 @@ function CautelasPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end items-center gap-1">
+                        {/* Ver detalhes */}
                         <Button asChild variant="ghost" size="icon">
                           <Link to="/cautelas/$id" params={{ id: c.id }}>
                             <FileText className="h-4 w-4" />
                           </Link>
                         </Button>
-                        {/* Botão Descautelar — apenas cautelas ativas */}
+
+                        {/* Descautelar — apenas cautelas ativas */}
                         {c.status === "ativa" && (
                           <Button
                             variant="outline"
@@ -99,6 +140,18 @@ function CautelasPage() {
                           >
                             <RotateCcw className="h-3.5 w-3.5" />
                             Descautelar
+                          </Button>
+                        )}
+
+                        {/* Excluir — apenas Comandante */}
+                        {role === "comandante" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => excluirCautela(c)}
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         )}
                       </div>
