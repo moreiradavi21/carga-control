@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SITUACOES, situacaoLabel, situacaoColor } from "@/lib/sismat/constants";
-import { Plus, Search, Pencil, Trash2, QrCode } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, QrCode, AlertTriangle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { EquipamentoDialog } from "@/components/sismat/equipamento-dialog";
 import { QrDialog } from "@/components/sismat/qr-dialog";
 import { toast } from "sonner";
@@ -121,7 +122,27 @@ function EquipamentosPage() {
                 <TableRow key={e.id}>
                   <TableCell className="font-mono text-xs">{e.patrimonio ?? "—"}</TableCell>
                   <TableCell className="font-mono text-xs">{e.numero_serie ?? "—"}</TableCell>
-                  <TableCell className="font-medium">{e.descricao}</TableCell>
+                  <TableCell className="font-medium">
+                    <span className="flex items-center gap-1.5">
+                      {e.descricao}
+                      {e.devolvido_com_alteracoes && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 border border-amber-300 cursor-help">
+                                <AlertTriangle className="h-2.5 w-2.5" />
+                                Alterações
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-xs text-xs">
+                              <p className="font-semibold mb-1">Devolvido com alterações:</p>
+                              <p>{e.descricao_alteracoes_devolucao ?? "Sem descrição registrada."}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </span>
+                  </TableCell>
                   <TableCell className="text-sm">{e.categorias?.nome ?? "—"}</TableCell>
                   <TableCell className="text-sm">{[e.marca, e.modelo].filter(Boolean).join(" ") || "—"}</TableCell>
                   <TableCell><Badge className={`${situacaoColor(e.situacao)} text-white hover:${situacaoColor(e.situacao)}`}>{situacaoLabel(e.situacao)}</Badge></TableCell>
