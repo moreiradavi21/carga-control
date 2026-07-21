@@ -51,7 +51,6 @@ function NovaCautela() {
   const [finalidade, setFinalidade] = useState<string>("Missão operacional");
   const [dataDev, setDataDev] = useState<string>("");
   const [observacoes, setObservacoes] = useState<string>("");
-  const [dataDesc, setDataDesc] = useState<string>("");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [busca, setBusca] = useState("");
   const [saving, setSaving] = useState(false);
@@ -109,7 +108,6 @@ function NovaCautela() {
         finalidade: finalidade || null,
         previsao_devolucao: dataDev || null,
         observacoes: observacoes || null,
-        data_descautelamento: dataDesc || null,
         created_by: user.user?.id,
         status: "ativa",
       };
@@ -291,17 +289,8 @@ function NovaCautela() {
 
             <LinhaAssinatura
               titulo="Recebimento do material descautelado"
-              subtitulo="Data e assinatura de quem recebeu o material devolvido"
-            >
-              <div className="space-y-1">
-                <Label className="text-xs">Data do descautelamento</Label>
-                <Input
-                  type="date"
-                  value={dataDesc}
-                  onChange={(e) => setDataDesc(e.target.value)}
-                />
-              </div>
-            </LinhaAssinatura>
+              subtitulo="Assinatura de quem recebeu o material devolvido"
+            />
 
           </div>
         </CardContent>
