@@ -9,74 +9,50 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
-import { Route as AuthenticatedCautelasRouteImport } from './routes/_authenticated/cautelas'
-import { Route as AuthenticatedContratoSatelitalRouteImport } from './routes/_authenticated/contrato-satelital'
-import { Route as AuthenticatedContratoSpotXRouteImport } from './routes/_authenticated/contrato-spot-x'
-import { Route as AuthenticatedContratoStarlinkRouteImport } from './routes/_authenticated/contrato-starlink'
-import { Route as AuthenticatedContratoTelefoniaRouteImport } from './routes/_authenticated/contrato-telefonia'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedEquipamentosRouteImport } from './routes/_authenticated/equipamentos'
-import { Route as AuthenticatedImportarRouteImport } from './routes/_authenticated/importar'
-import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
-import { Route as AuthenticatedCautelasIdRouteImport } from './routes/_authenticated/cautelas.$id'
+import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
+import { Route as AuthenticatedImportarRouteImport } from './routes/_authenticated/importar'
+import { Route as AuthenticatedEquipamentosRouteImport } from './routes/_authenticated/equipamentos'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedContratoTelefoniaRouteImport } from './routes/_authenticated/contrato-telefonia'
+import { Route as AuthenticatedContratoStarlinkRouteImport } from './routes/_authenticated/contrato-starlink'
+import { Route as AuthenticatedContratoSpotXRouteImport } from './routes/_authenticated/contrato-spot-x'
+import { Route as AuthenticatedContratoSatelitalRouteImport } from './routes/_authenticated/contrato-satelital'
+import { Route as AuthenticatedCautelasRouteImport } from './routes/_authenticated/cautelas'
+import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
 import { Route as AuthenticatedCautelasNovaRouteImport } from './routes/_authenticated/cautelas.nova'
+import { Route as AuthenticatedCautelasIdRouteImport } from './routes/_authenticated/cautelas.$id'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
-  id: '/auditoria',
-  path: '/auditoria',
+const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedCautelasRoute = AuthenticatedCautelasRouteImport.update({
-  id: '/cautelas',
-  path: '/cautelas',
+const AuthenticatedRelatoriosRoute = AuthenticatedRelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedContratoSatelitalRoute =
-  AuthenticatedContratoSatelitalRouteImport.update({
-    id: '/contrato-satelital',
-    path: '/contrato-satelital',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedContratoSpotXRoute =
-  AuthenticatedContratoSpotXRouteImport.update({
-    id: '/contrato-spot-x',
-    path: '/contrato-spot-x',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedContratoStarlinkRoute =
-  AuthenticatedContratoStarlinkRouteImport.update({
-    id: '/contrato-starlink',
-    path: '/contrato-starlink',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedContratoTelefoniaRoute =
-  AuthenticatedContratoTelefoniaRouteImport.update({
-    id: '/contrato-telefonia',
-    path: '/contrato-telefonia',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+const AuthenticatedImportarRoute = AuthenticatedImportarRouteImport.update({
+  id: '/importar',
+  path: '/importar',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedEquipamentosRoute =
@@ -85,25 +61,44 @@ const AuthenticatedEquipamentosRoute =
     path: '/equipamentos',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedImportarRoute = AuthenticatedImportarRouteImport.update({
-  id: '/importar',
-  path: '/importar',
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedRelatoriosRoute = AuthenticatedRelatoriosRouteImport.update({
-  id: '/relatorios',
-  path: '/relatorios',
+const AuthenticatedContratoTelefoniaRoute =
+  AuthenticatedContratoTelefoniaRouteImport.update({
+    id: '/contrato-telefonia',
+    path: '/contrato-telefonia',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedContratoStarlinkRoute =
+  AuthenticatedContratoStarlinkRouteImport.update({
+    id: '/contrato-starlink',
+    path: '/contrato-starlink',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedContratoSpotXRoute =
+  AuthenticatedContratoSpotXRouteImport.update({
+    id: '/contrato-spot-x',
+    path: '/contrato-spot-x',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedContratoSatelitalRoute =
+  AuthenticatedContratoSatelitalRouteImport.update({
+    id: '/contrato-satelital',
+    path: '/contrato-satelital',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCautelasRoute = AuthenticatedCautelasRouteImport.update({
+  id: '/cautelas',
+  path: '/cautelas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
-  id: '/usuarios',
-  path: '/usuarios',
+const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
+  id: '/auditoria',
+  path: '/auditoria',
   getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedCautelasIdRoute = AuthenticatedCautelasIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AuthenticatedCautelasRoute,
 } as any)
 const AuthenticatedCautelasNovaRoute =
   AuthenticatedCautelasNovaRouteImport.update({
@@ -111,6 +106,11 @@ const AuthenticatedCautelasNovaRoute =
     path: '/nova',
     getParentRoute: () => AuthenticatedCautelasRoute,
   } as any)
+const AuthenticatedCautelasIdRoute = AuthenticatedCautelasIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthenticatedCautelasRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -228,11 +228,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -242,74 +242,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/auditoria': {
-      id: '/_authenticated/auditoria'
-      path: '/auditoria'
-      fullPath: '/auditoria'
-      preLoaderRoute: typeof AuthenticatedAuditoriaRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/cautelas': {
-      id: '/_authenticated/cautelas'
-      path: '/cautelas'
-      fullPath: '/cautelas'
-      preLoaderRoute: typeof AuthenticatedCautelasRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/contrato-satelital': {
-      id: '/_authenticated/contrato-satelital'
-      path: '/contrato-satelital'
-      fullPath: '/contrato-satelital'
-      preLoaderRoute: typeof AuthenticatedContratoSatelitalRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/contrato-spot-x': {
-      id: '/_authenticated/contrato-spot-x'
-      path: '/contrato-spot-x'
-      fullPath: '/contrato-spot-x'
-      preLoaderRoute: typeof AuthenticatedContratoSpotXRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/contrato-starlink': {
-      id: '/_authenticated/contrato-starlink'
-      path: '/contrato-starlink'
-      fullPath: '/contrato-starlink'
-      preLoaderRoute: typeof AuthenticatedContratoStarlinkRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/contrato-telefonia': {
-      id: '/_authenticated/contrato-telefonia'
-      path: '/contrato-telefonia'
-      fullPath: '/contrato-telefonia'
-      preLoaderRoute: typeof AuthenticatedContratoTelefoniaRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/equipamentos': {
-      id: '/_authenticated/equipamentos'
-      path: '/equipamentos'
-      fullPath: '/equipamentos'
-      preLoaderRoute: typeof AuthenticatedEquipamentosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/importar': {
-      id: '/_authenticated/importar'
-      path: '/importar'
-      fullPath: '/importar'
-      preLoaderRoute: typeof AuthenticatedImportarRouteImport
+    '/_authenticated/usuarios': {
+      id: '/_authenticated/usuarios'
+      path: '/usuarios'
+      fullPath: '/usuarios'
+      preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/relatorios': {
@@ -319,25 +263,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRelatoriosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/usuarios': {
-      id: '/_authenticated/usuarios'
-      path: '/usuarios'
-      fullPath: '/usuarios'
-      preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
+    '/_authenticated/importar': {
+      id: '/_authenticated/importar'
+      path: '/importar'
+      fullPath: '/importar'
+      preLoaderRoute: typeof AuthenticatedImportarRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/cautelas/$id': {
-      id: '/_authenticated/cautelas/$id'
-      path: '/$id'
-      fullPath: '/cautelas/$id'
-      preLoaderRoute: typeof AuthenticatedCautelasIdRouteImport
-      parentRoute: typeof AuthenticatedCautelasRoute
+    '/_authenticated/equipamentos': {
+      id: '/_authenticated/equipamentos'
+      path: '/equipamentos'
+      fullPath: '/equipamentos'
+      preLoaderRoute: typeof AuthenticatedEquipamentosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/contrato-telefonia': {
+      id: '/_authenticated/contrato-telefonia'
+      path: '/contrato-telefonia'
+      fullPath: '/contrato-telefonia'
+      preLoaderRoute: typeof AuthenticatedContratoTelefoniaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/contrato-starlink': {
+      id: '/_authenticated/contrato-starlink'
+      path: '/contrato-starlink'
+      fullPath: '/contrato-starlink'
+      preLoaderRoute: typeof AuthenticatedContratoStarlinkRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/contrato-spot-x': {
+      id: '/_authenticated/contrato-spot-x'
+      path: '/contrato-spot-x'
+      fullPath: '/contrato-spot-x'
+      preLoaderRoute: typeof AuthenticatedContratoSpotXRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/contrato-satelital': {
+      id: '/_authenticated/contrato-satelital'
+      path: '/contrato-satelital'
+      fullPath: '/contrato-satelital'
+      preLoaderRoute: typeof AuthenticatedContratoSatelitalRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/cautelas': {
+      id: '/_authenticated/cautelas'
+      path: '/cautelas'
+      fullPath: '/cautelas'
+      preLoaderRoute: typeof AuthenticatedCautelasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/auditoria': {
+      id: '/_authenticated/auditoria'
+      path: '/auditoria'
+      fullPath: '/auditoria'
+      preLoaderRoute: typeof AuthenticatedAuditoriaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/cautelas/nova': {
       id: '/_authenticated/cautelas/nova'
       path: '/nova'
       fullPath: '/cautelas/nova'
       preLoaderRoute: typeof AuthenticatedCautelasNovaRouteImport
+      parentRoute: typeof AuthenticatedCautelasRoute
+    }
+    '/_authenticated/cautelas/$id': {
+      id: '/_authenticated/cautelas/$id'
+      path: '/$id'
+      fullPath: '/cautelas/$id'
+      preLoaderRoute: typeof AuthenticatedCautelasIdRouteImport
       parentRoute: typeof AuthenticatedCautelasRoute
     }
   }
@@ -397,3 +397,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
