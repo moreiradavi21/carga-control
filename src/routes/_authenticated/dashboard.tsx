@@ -65,6 +65,20 @@ function Dashboard() {
     },
   });
 
+  // Número de cautelas ativas (1 por cautela, independente de quantos equipamentos)
+  const { data: cautelasAtivas = 0 } = useQuery({
+    queryKey: ["dash-cautelas-ativas"],
+    queryFn: async () => {
+      try {
+        const { count } = await supabase
+          .from("cautelas")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "ativa");
+        return count ?? 0;
+      } catch { return 0; }
+    },
+  });
+
   const { data: mov } = useQuery({
     queryKey: ["dash-mov"],
     queryFn: async () => {
@@ -91,7 +105,7 @@ function Dashboard() {
 
   const cards = [
     { label: "Disponíveis",   value: counts[0].value, icon: CheckCircle2, color: "text-emerald-600" },
-    { label: "Em cautela",    value: counts[1].value, icon: ClipboardList, color: "text-amber-600" },
+    { label: "Em cautela",    value: cautelasAtivas,  icon: ClipboardList, color: "text-amber-600" },
     { label: "Extraviados",   value: counts[2].value, icon: PackageX,      color: "text-red-600" },
     { label: "Em sindicância",value: counts[3].value, icon: AlertTriangle,  color: "text-orange-600" },
     { label: "Em manutenção", value: counts[5].value, icon: Wrench,         color: "text-blue-600" },
