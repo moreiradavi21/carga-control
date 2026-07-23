@@ -153,6 +153,7 @@ export function DescautelaModal({ cautelaId, onClose }: Props) {
       qc.invalidateQueries({ queryKey: ["dash-stats"] });
       qc.invalidateQueries({ queryKey: ["dash-mov"] });
       qc.invalidateQueries({ queryKey: ["dash-cautelas-ativas"] });
+      qc.invalidateQueries({ queryKey: ["dash-cautelas-servico"] });
 
       toast.success(
         situacao === "com_alteracoes"

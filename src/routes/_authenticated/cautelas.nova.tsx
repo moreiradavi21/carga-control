@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { ArrowLeft, Save, PenLine, Search, X } from "lucide-react";
+import { ArrowLeft, Save, PenLine, Search, X, ClipboardList, Briefcase } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/cautelas/nova")({ component: NovaCautela });
 
@@ -43,6 +43,7 @@ function LinhaAssinatura({
 function NovaCautela() {
   const nav = useNavigate();
 
+  const [tipoCautela, setTipoCautela] = useState<"padrao" | "servico">("padrao");
   const [postoResp, setPostoResp] = useState("");
   const [militarResp, setMilitarResp] = useState("");
   const [postoRet, setPostoRet] = useState("");
@@ -100,6 +101,7 @@ function NovaCautela() {
 
       const payload: any = {
         numero: numeroData ?? `${new Date().getFullYear()}-${Date.now()}`,
+        tipo: tipoCautela,
         militar_responsavel: militarResp,
         posto_responsavel: postoResp || null,
         militar_retirada: militarRet,
@@ -143,6 +145,40 @@ function NovaCautela() {
       <div>
         <h2 className="text-2xl font-bold">Nova Cautela</h2>
         <p className="text-sm text-muted-foreground">Emissão de termo de cautela de material</p>
+      </div>
+
+      {/* ── Tipo de cautela ── */}
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={() => setTipoCautela("padrao")}
+          className={`flex items-center gap-3 rounded-lg border-2 px-5 py-4 text-sm font-medium transition-colors ${
+            tipoCautela === "padrao"
+              ? "border-amber-500 bg-amber-50 text-amber-900"
+              : "border-border hover:border-muted-foreground/40 text-muted-foreground"
+          }`}
+        >
+          <ClipboardList className={`h-5 w-5 shrink-0 ${tipoCautela === "padrao" ? "text-amber-600" : "text-muted-foreground"}`} />
+          <div className="text-left">
+            <p className="font-semibold">Cautela Padrão</p>
+            <p className="text-xs font-normal opacity-70">Material retirado por militar</p>
+          </div>
+        </button>
+        <button
+          type="button"
+          onClick={() => setTipoCautela("servico")}
+          className={`flex items-center gap-3 rounded-lg border-2 px-5 py-4 text-sm font-medium transition-colors ${
+            tipoCautela === "servico"
+              ? "border-violet-500 bg-violet-50 text-violet-900"
+              : "border-border hover:border-muted-foreground/40 text-muted-foreground"
+          }`}
+        >
+          <Briefcase className={`h-5 w-5 shrink-0 ${tipoCautela === "servico" ? "text-violet-600" : "text-muted-foreground"}`} />
+          <div className="text-left">
+            <p className="font-semibold">Cautela de Serviço</p>
+            <p className="text-xs font-normal opacity-70">Material em uso operacional de serviço</p>
+          </div>
+        </button>
       </div>
 
       {/* ── Dados da cautela ── */}

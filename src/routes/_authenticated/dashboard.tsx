@@ -65,7 +65,7 @@ function Dashboard() {
     },
   });
 
-  // Número de cautelas ativas (1 por cautela, independente de quantos equipamentos)
+  // Cautelas ativas padrão (tipo = 'padrao' ou sem tipo definido)
   const { data: cautelasAtivas = 0 } = useQuery({
     queryKey: ["dash-cautelas-ativas"],
     queryFn: async () => {
@@ -73,7 +73,23 @@ function Dashboard() {
         const { count } = await supabase
           .from("cautelas")
           .select("id", { count: "exact", head: true })
-          .eq("status", "ativa");
+          .eq("status", "ativa")
+          .or("tipo.eq.padrao,tipo.is.null");
+        return count ?? 0;
+      } catch { return 0; }
+    },
+  });
+
+  // Cautelas ativas de serviço (tipo = 'servico')
+  const { data: cautelasServico = 0 } = useQuery({
+    queryKey: ["dash-cautelas-servico"],
+    queryFn: async () => {
+      try {
+        const { count } = await supabase
+          .from("cautelas")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "ativa")
+          .eq("tipo", "servico");
         return count ?? 0;
       } catch { return 0; }
     },
@@ -106,7 +122,7 @@ function Dashboard() {
   const cards = [
     { label: "Disponíveis",        value: counts[0].value, icon: CheckCircle2, color: "text-emerald-600" },
     { label: "Em cautela",         value: cautelasAtivas,  icon: ClipboardList, color: "text-amber-600" },
-    { label: "Cautelas - Serviço", value: counts[1].value, icon: Briefcase,     color: "text-violet-600" },
+    { label: "Cautelas - Serviço", value: cautelasServico,  icon: Briefcase,     color: "text-violet-600" },
     { label: "Extraviados",        value: counts[2].value, icon: PackageX,      color: "text-red-600" },
     { label: "Em sindicância",     value: counts[3].value, icon: AlertTriangle, color: "text-orange-600" },
     { label: "Em manutenção",      value: counts[5].value, icon: Wrench,        color: "text-blue-600" },
