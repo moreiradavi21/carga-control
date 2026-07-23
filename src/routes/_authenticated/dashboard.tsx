@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/sismat/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -15,6 +16,9 @@ export const Route = createFileRoute("/_authenticated/dashboard")({ component: D
 const COLORS = ["#556b2f", "#8a9a5b", "#c68821", "#c1440e", "#5c5c5c", "#3b6790"];
 
 function Dashboard() {
+  const { role } = useAuth();
+  const isTelefonista = role === "telefonista";
+
   const { data: stats } = useQuery({
     queryKey: ["dash-stats"],
     queryFn: async () => {
@@ -119,15 +123,23 @@ function Dashboard() {
   });
   const catData = Object.entries(byCat).map(([name, value]) => ({ name, value }));
 
-  const cards = [
+  const cardsComandante = [
     { label: "Disponíveis",        value: counts[0].value, icon: CheckCircle2, color: "text-emerald-600" },
     { label: "Em cautela",         value: cautelasAtivas,  icon: ClipboardList, color: "text-amber-600" },
-    { label: "Cautelas - Serviço", value: cautelasServico,  icon: Briefcase,     color: "text-violet-600" },
+    { label: "Cautelas - Serviço", value: cautelasServico,  icon: Briefcase,    color: "text-violet-600" },
     { label: "Extraviados",        value: counts[2].value, icon: PackageX,      color: "text-red-600" },
     { label: "Em sindicância",     value: counts[3].value, icon: AlertTriangle, color: "text-orange-600" },
     { label: "Em manutenção",      value: counts[5].value, icon: Wrench,        color: "text-blue-600" },
     { label: "Total",              value: total,           icon: Package,       color: "text-primary" },
   ];
+
+  const cardsTelefonista = [
+    { label: "Disponíveis",        value: counts[0].value, icon: CheckCircle2, color: "text-emerald-600" },
+    { label: "Em cautela",         value: cautelasAtivas,  icon: ClipboardList, color: "text-amber-600" },
+    { label: "Cautelas - Serviço", value: cautelasServico,  icon: Briefcase,    color: "text-violet-600" },
+  ];
+
+  const cards = isTelefonista ? cardsTelefonista : cardsComandante;
 
   return (
     <div className="space-y-6">
@@ -137,7 +149,7 @@ function Dashboard() {
       </div>
 
       {/* Cards de situação */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+      <div className={`grid gap-3 ${isTelefonista ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-2 md:grid-cols-4 lg:grid-cols-7"}`}>
         {cards.map((c) => (
           <Card key={c.label}>
             <CardContent className="pt-4">
@@ -152,6 +164,9 @@ function Dashboard() {
           </Card>
         ))}
       </div>
+
+      {/* ── Seções exclusivas do Comandante ── */}
+      {!isTelefonista && <>
 
       {/* ── Vencimento de Contratos ── */}
       <Card>
@@ -315,6 +330,8 @@ function Dashboard() {
           </div>
         </CardContent>
       </Card>
+
+      </>} {/* fim seções exclusivas do Comandante */}
     </div>
   );
 }
