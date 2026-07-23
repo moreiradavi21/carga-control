@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -24,8 +23,7 @@ export function DescautelaModal({ cautelaId, onClose }: Props) {
   const open = !!cautelaId;
 
   // ── Formulário ────────────────────────────────────────────────────
-  const nowStr = format(new Date(), "yyyy-MM-dd'T'HH:mm");
-  const [dataDescautela, setDataDescautela] = useState(nowStr);
+  const [dataDescautela, setDataDescautela] = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
   const [quemRecebeu, setQuemRecebeu] = useState("");
   const [situacao, setSituacao] = useState<"sem_alteracoes" | "com_alteracoes">("sem_alteracoes");
   const [descAlteracoes, setDescAlteracoes] = useState("");
@@ -88,15 +86,24 @@ export function DescautelaModal({ cautelaId, onClose }: Props) {
 
       const itens: any[] = cautela?.cautela_itens ?? [];
 
-      // 2. Atualizar cada equipamento → disponivel + flag de alteração
+      // 2. Atualizar cada equipamento → disponivel
+      //    Tenta com colunas extras; se falhar (migração pendente), só atualiza situacao
       for (const item of itens) {
         const eq = item.equipamentos;
         if (!eq) continue;
-        await supabase.from("equipamentos").update({
+
+        const { error: fullErr } = await supabase.from("equipamentos").update({
           situacao: "disponivel",
           devolvido_com_alteracoes: situacao === "com_alteracoes",
           descricao_alteracoes_devolucao: situacao === "com_alteracoes" ? descAlteracoes : null,
         }).eq("id", eq.id);
+
+        // Fallback: colunas extras podem não existir ainda (migração pendente)
+        if (fullErr) {
+          await supabase.from("equipamentos")
+            .update({ situacao: "disponivel" })
+            .eq("id", eq.id);
+        }
       }
 
       // 3. Inserir movimentações (histórico imutável — uma por equipamento)
@@ -119,16 +126,25 @@ export function DescautelaModal({ cautelaId, onClose }: Props) {
         await supabase.from("movimentacoes").insert(movs);
       }
 
-      // 4. Finalizar a cautela
-      await supabase.from("cautelas").update({
-        status: "finalizada",
-        data_descautela: new Date(dataDescautela).toISOString(),
-        quem_descautelou: quemRecebeu,
-        situacao_devolucao: situacao,
-        descricao_alteracoes: situacao === "com_alteracoes" ? descAlteracoes : null,
-        imagem_alteracao_url: imagemUrl,
-        descautelado_por: userId,
-      }).eq("id", cautelaId);
+      // 4a. Atualizar status para finalizada — obrigatório, verifica erro
+      const { error: statusErr } = await supabase.from("cautelas")
+        .update({ status: "finalizada" })
+        .eq("id", cautelaId);
+      if (statusErr) throw statusErr;
+
+      // 4b. Atualizar campos extras da descautela — silencioso se colunas não existirem
+      try {
+        await supabase.from("cautelas").update({
+          data_descautela: new Date(dataDescautela).toISOString(),
+          quem_descautelou: quemRecebeu,
+          situacao_devolucao: situacao,
+          descricao_alteracoes: situacao === "com_alteracoes" ? descAlteracoes : null,
+          imagem_alteracao_url: imagemUrl,
+          descautelado_por: userId,
+        }).eq("id", cautelaId);
+      } catch {
+        // Colunas ainda não existem — execute a migração 20260720000000_add_descautela.sql via Lovable
+      }
 
       // 5. Invalidar caches
       qc.invalidateQueries({ queryKey: ["cautelas"] });
@@ -136,6 +152,7 @@ export function DescautelaModal({ cautelaId, onClose }: Props) {
       qc.invalidateQueries({ queryKey: ["equips-disp"] });
       qc.invalidateQueries({ queryKey: ["dash-stats"] });
       qc.invalidateQueries({ queryKey: ["dash-mov"] });
+      qc.invalidateQueries({ queryKey: ["dash-cautelas-ativas"] });
 
       toast.success(
         situacao === "com_alteracoes"

@@ -6,8 +6,9 @@ import { useAuth } from "@/lib/sismat/use-auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, FileText, RotateCcw, Trash2 } from "lucide-react";
+import { Plus, FileText, RotateCcw, Trash2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -42,6 +43,9 @@ function CautelasPage() {
     },
   });
 
+  const cautelasAtivas = cautelas.filter((c: any) => c.status === "ativa");
+  const cautelasFinalizadas = cautelas.filter((c: any) => c.status === "finalizada");
+
   async function excluirCautela(c: any) {
     const confirmMsg =
       c.status === "ativa"
@@ -72,9 +76,20 @@ function CautelasPage() {
       qc.invalidateQueries({ queryKey: ["cautelas"] });
       qc.invalidateQueries({ queryKey: ["equipamentos"] });
       qc.invalidateQueries({ queryKey: ["dash-stats"] });
+      qc.invalidateQueries({ queryKey: ["dash-cautelas-ativas"] });
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao excluir cautela.");
     }
+  }
+
+  function formatDate(val: string | null | undefined) {
+    if (!val) return "—";
+    try { return format(new Date(val), "dd/MM/yyyy", { locale: ptBR }); } catch { return "—"; }
+  }
+
+  function formatDateTime(val: string | null | undefined) {
+    if (!val) return "—";
+    try { return format(new Date(val), "dd/MM/yyyy HH:mm", { locale: ptBR }); } catch { return "—"; }
   }
 
   return (
@@ -90,85 +105,181 @@ function CautelasPage() {
           </Button>
         </div>
 
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Número</TableHead>
-                  <TableHead>Militar</TableHead>
-                  <TableHead>Companhia</TableHead>
-                  <TableHead>Emissão</TableHead>
-                  <TableHead>Itens</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {cautelas.map((c: any) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="font-mono font-semibold">{c.numero}</TableCell>
-                    <TableCell>
-                      <div className="text-sm font-medium">{c.posto_responsavel} {c.militar_responsavel}</div>
-                    </TableCell>
-                    <TableCell className="text-sm">{c.companhias?.nome ?? "—"}</TableCell>
-                    <TableCell className="text-sm">
-                      {format(new Date(c.data_saida), "dd/MM/yyyy", { locale: ptBR })}
-                    </TableCell>
-                    <TableCell className="text-sm">{c.cautela_itens?.length ?? 0}</TableCell>
-                    <TableCell>
-                      <Badge className={`${STATUS_COLOR[c.status]} text-white`}>
-                        {STATUS_LABEL[c.status]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end items-center gap-1">
-                        {/* Ver detalhes */}
-                        <Button asChild variant="ghost" size="icon">
-                          <Link to="/cautelas/$id" params={{ id: c.id }}>
-                            <FileText className="h-4 w-4" />
-                          </Link>
-                        </Button>
+        <Tabs defaultValue="ativas">
+          <TabsList>
+            <TabsTrigger value="ativas">
+              Ativas
+              <Badge variant="secondary" className="ml-1.5 h-5 min-w-5 px-1 text-xs">
+                {cautelasAtivas.length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="descautelas">
+              Descautelas
+              <Badge variant="secondary" className="ml-1.5 h-5 min-w-5 px-1 text-xs">
+                {cautelasFinalizadas.length}
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
 
-                        {/* Descautelar — apenas cautelas ativas */}
-                        {c.status === "ativa" && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-1.5 text-xs h-8"
-                            onClick={() => setDescautelaId(c.id)}
-                          >
-                            <RotateCcw className="h-3.5 w-3.5" />
-                            Descautelar
-                          </Button>
-                        )}
+          {/* ── Aba: Cautelas Ativas ── */}
+          <TabsContent value="ativas" className="mt-3">
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Número</TableHead>
+                      <TableHead>Militar</TableHead>
+                      <TableHead>Companhia</TableHead>
+                      <TableHead>Emissão</TableHead>
+                      <TableHead>Itens</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {cautelasAtivas.map((c: any) => (
+                      <TableRow key={c.id}>
+                        <TableCell className="font-mono font-semibold">{c.numero}</TableCell>
+                        <TableCell>
+                          <div className="text-sm font-medium">{c.posto_responsavel} {c.militar_responsavel}</div>
+                        </TableCell>
+                        <TableCell className="text-sm">{c.companhias?.nome ?? "—"}</TableCell>
+                        <TableCell className="text-sm">{formatDate(c.data_saida)}</TableCell>
+                        <TableCell className="text-sm">{c.cautela_itens?.length ?? 0}</TableCell>
+                        <TableCell>
+                          <Badge className={`${STATUS_COLOR[c.status]} text-white`}>
+                            {STATUS_LABEL[c.status]}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end items-center gap-1">
+                            <Button asChild variant="ghost" size="icon">
+                              <Link to="/cautelas/$id" params={{ id: c.id }}>
+                                <FileText className="h-4 w-4" />
+                              </Link>
+                            </Button>
 
-                        {/* Excluir — apenas Comandante */}
-                        {role === "comandante" && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => excluirCautela(c)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {cautelas.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                      Nenhuma cautela emitida
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1.5 text-xs h-8"
+                              onClick={() => setDescautelaId(c.id)}
+                            >
+                              <RotateCcw className="h-3.5 w-3.5" />
+                              Descautelar
+                            </Button>
+
+                            {role === "comandante" && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => excluirCautela(c)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {cautelasAtivas.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                          Nenhuma cautela ativa
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ── Aba: Descautelas ── */}
+          <TabsContent value="descautelas" className="mt-3">
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Número</TableHead>
+                      <TableHead>Militar cautelante</TableHead>
+                      <TableHead>Companhia</TableHead>
+                      <TableHead>Data cautela</TableHead>
+                      <TableHead>Itens</TableHead>
+                      <TableHead>Quem devolveu</TableHead>
+                      <TableHead>Data descautela</TableHead>
+                      <TableHead>Situação</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {cautelasFinalizadas.map((c: any) => {
+                      const comAlteracoes = c.situacao_devolucao === "com_alteracoes";
+                      return (
+                        <TableRow key={c.id}>
+                          <TableCell className="font-mono font-semibold">{c.numero}</TableCell>
+                          <TableCell>
+                            <div className="text-sm font-medium">{c.posto_responsavel} {c.militar_responsavel}</div>
+                          </TableCell>
+                          <TableCell className="text-sm">{c.companhias?.nome ?? "—"}</TableCell>
+                          <TableCell className="text-sm">{formatDate(c.data_saida)}</TableCell>
+                          <TableCell className="text-sm">{c.cautela_itens?.length ?? 0}</TableCell>
+                          <TableCell className="text-sm">{c.quem_descautelou ?? "—"}</TableCell>
+                          <TableCell className="text-sm">{formatDateTime(c.data_descautela)}</TableCell>
+                          <TableCell>
+                            {c.situacao_devolucao ? (
+                              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold border ${
+                                comAlteracoes
+                                  ? "bg-amber-50 text-amber-700 border-amber-300"
+                                  : "bg-emerald-50 text-emerald-700 border-emerald-300"
+                              }`}>
+                                {comAlteracoes
+                                  ? <AlertTriangle className="h-3 w-3" />
+                                  : <CheckCircle2 className="h-3 w-3" />}
+                                {comAlteracoes ? "Com alterações" : "Sem alterações"}
+                              </span>
+                            ) : (
+                              <Badge className="bg-emerald-700 text-white">Finalizada</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end items-center gap-1">
+                              <Button asChild variant="ghost" size="icon">
+                                <Link to="/cautelas/$id" params={{ id: c.id }}>
+                                  <FileText className="h-4 w-4" />
+                                </Link>
+                              </Button>
+                              {role === "comandante" && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => excluirCautela(c)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {cautelasFinalizadas.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                          Nenhuma descautela registrada
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
 
       <Outlet />
