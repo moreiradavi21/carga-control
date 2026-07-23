@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SITUACOES, situacaoLabel } from "@/lib/sismat/constants";
-import { CheckCircle2, AlertTriangle, Wrench, PackageX, Package, ClipboardList, ArrowRightLeft, FileText, Wifi, Satellite, Phone, Globe } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Wrench, PackageX, Package, ClipboardList, ArrowRightLeft, FileText, Wifi, Satellite, Phone, Globe, Briefcase } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { formatDistanceToNow, differenceInDays, parseISO, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -104,12 +104,13 @@ function Dashboard() {
   const catData = Object.entries(byCat).map(([name, value]) => ({ name, value }));
 
   const cards = [
-    { label: "Disponíveis",   value: counts[0].value, icon: CheckCircle2, color: "text-emerald-600" },
-    { label: "Em cautela",    value: cautelasAtivas,  icon: ClipboardList, color: "text-amber-600" },
-    { label: "Extraviados",   value: counts[2].value, icon: PackageX,      color: "text-red-600" },
-    { label: "Em sindicância",value: counts[3].value, icon: AlertTriangle,  color: "text-orange-600" },
-    { label: "Em manutenção", value: counts[5].value, icon: Wrench,         color: "text-blue-600" },
-    { label: "Total",         value: total,            icon: Package,        color: "text-primary" },
+    { label: "Disponíveis",        value: counts[0].value, icon: CheckCircle2, color: "text-emerald-600" },
+    { label: "Em cautela",         value: cautelasAtivas,  icon: ClipboardList, color: "text-amber-600" },
+    { label: "Cautelas - Serviço", value: counts[1].value, icon: Briefcase,     color: "text-violet-600" },
+    { label: "Extraviados",        value: counts[2].value, icon: PackageX,      color: "text-red-600" },
+    { label: "Em sindicância",     value: counts[3].value, icon: AlertTriangle, color: "text-orange-600" },
+    { label: "Em manutenção",      value: counts[5].value, icon: Wrench,        color: "text-blue-600" },
+    { label: "Total",              value: total,           icon: Package,       color: "text-primary" },
   ];
 
   return (
@@ -120,7 +121,7 @@ function Dashboard() {
       </div>
 
       {/* Cards de situação */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
         {cards.map((c) => (
           <Card key={c.label}>
             <CardContent className="pt-4">
