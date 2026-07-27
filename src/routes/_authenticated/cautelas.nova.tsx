@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,7 @@ function LinhaAssinatura({
 // ────────────────────────────────────────────────────────────────────────────
 function NovaCautela() {
   const nav = useNavigate();
+  const qc = useQueryClient();
 
   const [tipoCautela, setTipoCautela] = useState<"padrao" | "servico">("padrao");
   const [postoResp, setPostoResp] = useState("");
@@ -150,11 +151,23 @@ function NovaCautela() {
         .in("id", selectedIds);
       if (sitErr) {
         // Enum cautela_servico ainda não existe — atualiza para em_cautela
-        await supabase
+        const { error: sitFallbackErr } = await supabase
           .from("equipamentos")
           .update({ situacao: "em_cautela" })
           .in("id", selectedIds);
+        if (sitFallbackErr) {
+          // Atualização falhou — cautela foi criada mas equipamentos ficaram com situacao antiga
+          toast.warning(`Cautela ${cautela.numero} criada, mas falha ao atualizar situação dos equipamentos: ${sitFallbackErr.message}`);
+        }
       }
+
+      // Invalidar caches para refletir os novos estados na UI
+      qc.invalidateQueries({ queryKey: ["equipamentos"] });
+      qc.invalidateQueries({ queryKey: ["equips-disp"] });
+      qc.invalidateQueries({ queryKey: ["cautelas"] });
+      qc.invalidateQueries({ queryKey: ["dash-stats"] });
+      qc.invalidateQueries({ queryKey: ["dash-cautelas-ativas"] });
+      qc.invalidateQueries({ queryKey: ["dash-cautelas-servico"] });
 
       toast.success(`Cautela ${cautela.numero} emitida`);
       nav({ to: "/cautelas" });
