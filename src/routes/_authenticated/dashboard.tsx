@@ -1,35 +1,44 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/sismat/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { SITUACOES, situacaoLabel } from "@/lib/sismat/constants";
-import { CheckCircle2, AlertTriangle, Wrench, PackageX, Package, ClipboardList, ArrowRightLeft, FileText, Wifi, Satellite, Phone, Globe, Briefcase } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { SITUACOES, situacaoLabel, situacaoColor } from "@/lib/sismat/constants";
+import {
+  CheckCircle2, AlertTriangle, Wrench, PackageX, Package,
+  ClipboardList, ArrowRightLeft, FileText, Wifi, Satellite,
+  Phone, Globe, Briefcase, Archive,
+} from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { formatDistanceToNow, differenceInDays, parseISO, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({ component: Dashboard });
 
-const COLORS = ["#556b2f", "#8a9a5b", "#c68821", "#c1440e", "#5c5c5c", "#3b6790"];
+const COLORS = ["#556b2f", "#8a9a5b", "#c68821", "#c1440e", "#5c5c5c", "#3b6790", "#7c3aed", "#3f3f46"];
 
 function Dashboard() {
   const { role } = useAuth();
   const isTelefonista = role === "telefonista";
+  const [drillSit, setDrillSit] = useState<string | null>(null);
 
-  const { data: stats } = useQuery({
+  // ── Equipamentos (stats + drill-down) ───────────────────────────
+  const { data: stats = [] } = useQuery({
     queryKey: ["dash-stats"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("equipamentos")
-        .select("situacao, categoria_id, categorias(nome)");
+        .select("id, descricao, patrimonio, numero_serie, localizacao, situacao, categoria_id, categorias(nome)");
       if (error) return [];
       return data ?? [];
     },
   });
 
+  // ── PEF ─────────────────────────────────────────────────────────
   const { data: pefMateriais = [] } = useQuery({
     queryKey: ["dash-pef"],
     queryFn: async () => {
@@ -41,9 +50,7 @@ function Dashboard() {
           .order("descricao");
         if (error) return [];
         return data ?? [];
-      } catch {
-        return [];
-      }
+      } catch { return []; }
     },
   });
 
@@ -51,7 +58,7 @@ function Dashboard() {
   const CONTRATOS_CONFIG = [
     { tipo: "spot_x",    label: "Spot X",    icon: Wifi,      to: "/contrato-spot-x" },
     { tipo: "satelital", label: "Satelital", icon: Satellite, to: "/contrato-satelital" },
-    { tipo: "telefonia", label: "Telefonia", icon: Phone,      to: "/contrato-telefonia" },
+    { tipo: "telefonia", label: "Telefonia", icon: Phone,     to: "/contrato-telefonia" },
     { tipo: "starlink",  label: "Starlink",  icon: Globe,     to: "/contrato-starlink" },
   ];
 
@@ -64,48 +71,16 @@ function Dashboard() {
           .select("tipo, fornecedor, data_validade")
           .order("data_validade", { ascending: false });
         if (!data) return [];
-        // Pega o contrato com validade mais recente por tipo (para exibir no painel)
         const porTipo: Record<string, { tipo: string; fornecedor: string; data_validade: string }> = {};
         for (const c of data) {
           if (!porTipo[c.tipo]) porTipo[c.tipo] = c;
         }
         return Object.values(porTipo) as { tipo: string; fornecedor: string; data_validade: string }[];
-      } catch {
-        return [];
-      }
+      } catch { return []; }
     },
   });
 
-  // Cautelas ativas padrão (tipo = 'padrao' ou sem tipo definido)
-  const { data: cautelasAtivas = 0 } = useQuery({
-    queryKey: ["dash-cautelas-ativas"],
-    queryFn: async () => {
-      try {
-        const { count } = await supabase
-          .from("cautelas")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "ativa")
-          .or("tipo.eq.padrao,tipo.is.null");
-        return count ?? 0;
-      } catch { return 0; }
-    },
-  });
-
-  // Cautelas ativas de serviço (tipo = 'servico')
-  const { data: cautelasServico = 0 } = useQuery({
-    queryKey: ["dash-cautelas-servico"],
-    queryFn: async () => {
-      try {
-        const { count } = await supabase
-          .from("cautelas")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "ativa")
-          .eq("tipo", "servico");
-        return count ?? 0;
-      } catch { return 0; }
-    },
-  });
-
+  // ── Movimentações ────────────────────────────────────────────────
   const { data: mov } = useQuery({
     queryKey: ["dash-mov"],
     queryFn: async () => {
@@ -118,35 +93,44 @@ function Dashboard() {
     },
   });
 
-  const counts = SITUACOES.map((s) => ({
-    name: s.label,
-    value: (stats ?? []).filter((e: any) => e.situacao === s.value).length,
-  }));
-  const total = (stats ?? []).length;
+  // ── Helpers de contagem ──────────────────────────────────────────
+  const countBy = (sit: string) => stats.filter((e: any) => e.situacao === sit).length;
+  const total = stats.length;
+
   const byCat: Record<string, number> = {};
-  (stats ?? []).forEach((e: any) => {
-    const k = e.categorias?.nome ?? "Sem categoria";
+  stats.forEach((e: any) => {
+    const k = (e as any).categorias?.nome ?? "Sem categoria";
     byCat[k] = (byCat[k] ?? 0) + 1;
   });
   const catData = Object.entries(byCat).map(([name, value]) => ({ name, value }));
+  const pieData = SITUACOES.map((s) => ({ name: s.label, value: countBy(s.value) })).filter(d => d.value > 0);
 
-  const cardsComandante = [
-    { label: "Disponíveis",        value: counts[0].value, icon: CheckCircle2, color: "text-emerald-600" },
-    { label: "Em cautela",         value: cautelasAtivas,  icon: ClipboardList, color: "text-amber-600" },
-    { label: "Cautelas - Serviço", value: cautelasServico,  icon: Briefcase,    color: "text-violet-600" },
-    { label: "Extraviados",        value: counts[2].value, icon: PackageX,      color: "text-red-600" },
-    { label: "Em sindicância",     value: counts[3].value, icon: AlertTriangle, color: "text-orange-600" },
-    { label: "Em manutenção",      value: counts[5].value, icon: Wrench,        color: "text-blue-600" },
-    { label: "Total",              value: total,           icon: Package,       color: "text-primary" },
+  // ── Cards ────────────────────────────────────────────────────────
+  type CardDef = { label: string; value: number; icon: any; color: string; sit?: string };
+
+  const cardsComandante: CardDef[] = [
+    { label: "Disponíveis",       value: countBy("disponivel"),      icon: CheckCircle2,  color: "text-emerald-600", sit: "disponivel"      },
+    { label: "Em cautela",        value: countBy("em_cautela"),      icon: ClipboardList, color: "text-amber-600",   sit: "em_cautela"      },
+    { label: "Cautela - Serviço", value: countBy("cautela_servico"), icon: Briefcase,     color: "text-violet-600",  sit: "cautela_servico" },
+    { label: "Em manutenção",     value: countBy("em_manutencao"),   icon: Wrench,        color: "text-blue-600",    sit: "em_manutencao"   },
+    { label: "Em sindicância",    value: countBy("em_sindicancia"),  icon: AlertTriangle, color: "text-orange-600",  sit: "em_sindicancia"  },
+    { label: "Extraviados",       value: countBy("extraviado"),      icon: PackageX,      color: "text-red-600",     sit: "extraviado"      },
+    { label: "Descarga",          value: countBy("descarga"),        icon: Archive,       color: "text-zinc-700",    sit: "descarga"        },
+    { label: "Total",             value: total,                      icon: Package,       color: "text-primary",     sit: "__all__"         },
   ];
 
-  const cardsTelefonista = [
-    { label: "Disponíveis",        value: counts[0].value, icon: CheckCircle2, color: "text-emerald-600" },
-    { label: "Em cautela",         value: cautelasAtivas,  icon: ClipboardList, color: "text-amber-600" },
-    { label: "Cautelas - Serviço", value: cautelasServico,  icon: Briefcase,    color: "text-violet-600" },
+  const cardsTelefonista: CardDef[] = [
+    { label: "Disponíveis",       value: countBy("disponivel"),      icon: CheckCircle2,  color: "text-emerald-600", sit: "disponivel"      },
+    { label: "Em cautela",        value: countBy("em_cautela"),      icon: ClipboardList, color: "text-amber-600",   sit: "em_cautela"      },
+    { label: "Cautela - Serviço", value: countBy("cautela_servico"), icon: Briefcase,     color: "text-violet-600",  sit: "cautela_servico" },
   ];
 
   const cards = isTelefonista ? cardsTelefonista : cardsComandante;
+
+  // Itens para drill-down modal
+  const drillItems = drillSit
+    ? stats.filter((e: any) => drillSit === "__all__" ? true : e.situacao === drillSit)
+    : [];
 
   return (
     <div className="space-y-6">
@@ -155,10 +139,14 @@ function Dashboard() {
         <p className="text-sm text-muted-foreground">Visão geral do material carga do pelotão</p>
       </div>
 
-      {/* Cards de situação */}
-      <div className={`grid gap-3 ${isTelefonista ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-2 md:grid-cols-4 lg:grid-cols-7"}`}>
+      {/* Cards de situação — clicáveis para drill-down */}
+      <div className={`grid gap-3 ${isTelefonista ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-2 md:grid-cols-4 lg:grid-cols-8"}`}>
         {cards.map((c) => (
-          <Card key={c.label}>
+          <Card
+            key={c.label}
+            onClick={() => c.sit && setDrillSit(c.sit)}
+            className="cursor-pointer hover:border-primary/40 hover:shadow-md transition-all"
+          >
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -171,6 +159,46 @@ function Dashboard() {
           </Card>
         ))}
       </div>
+
+      {/* Modal drill-down — lista de equipamentos da situação clicada */}
+      <Dialog open={!!drillSit} onOpenChange={(o) => { if (!o) setDrillSit(null); }}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {drillSit === "__all__" ? "Todos os equipamentos" : `Equipamentos — ${situacaoLabel(drillSit ?? "")}`}
+              <span className="text-sm text-muted-foreground font-normal ml-2">({drillItems.length})</span>
+            </DialogTitle>
+          </DialogHeader>
+          {drillItems.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4">Nenhum equipamento nesta situação.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Patrimônio</TableHead>
+                  <TableHead>Nº Série</TableHead>
+                  <TableHead>Localização</TableHead>
+                  <TableHead>Situação</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {drillItems.map((e: any) => (
+                  <TableRow key={e.id}>
+                    <TableCell className="font-medium">{e.descricao}</TableCell>
+                    <TableCell className="font-mono text-xs">{e.patrimonio ?? "—"}</TableCell>
+                    <TableCell className="font-mono text-xs">{e.numero_serie ?? "—"}</TableCell>
+                    <TableCell className="text-sm">{e.localizacao ?? "—"}</TableCell>
+                    <TableCell>
+                      <Badge className={`${situacaoColor(e.situacao)} text-white`}>{situacaoLabel(e.situacao)}</Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ── Seções exclusivas do Comandante ── */}
       {!isTelefonista && <>
@@ -199,20 +227,8 @@ function Dashboard() {
                 );
               }
               const dias = differenceInDays(parseISO(c.data_validade), new Date());
-              const cor =
-                dias < 0
-                  ? "border-red-400 bg-red-50"
-                  : dias <= 30
-                  ? "border-red-300 bg-red-50"
-                  : dias <= 90
-                  ? "border-amber-300 bg-amber-50"
-                  : "border-emerald-300 bg-emerald-50";
-              const textCor =
-                dias < 0 || dias <= 30
-                  ? "text-red-700"
-                  : dias <= 90
-                  ? "text-amber-700"
-                  : "text-emerald-700";
+              const cor = dias < 0 ? "border-red-400 bg-red-50" : dias <= 30 ? "border-red-300 bg-red-50" : dias <= 90 ? "border-amber-300 bg-amber-50" : "border-emerald-300 bg-emerald-50";
+              const textCor = dias < 0 || dias <= 30 ? "text-red-700" : dias <= 90 ? "text-amber-700" : "text-emerald-700";
               return (
                 <Link key={tipo} to={to}>
                   <div className={`border rounded-lg p-3 text-center space-y-1 hover:opacity-80 transition-opacity cursor-pointer ${cor}`}>
@@ -220,13 +236,9 @@ function Dashboard() {
                     <p className="text-xs font-semibold">{label}</p>
                     <p className="text-[10px] text-muted-foreground truncate" title={c.fornecedor}>{c.fornecedor}</p>
                     <p className={`text-[11px] font-bold ${textCor}`}>
-                      {dias < 0
-                        ? `Vencido há ${Math.abs(dias)}d`
-                        : `${dias} dia(s)`}
+                      {dias < 0 ? `Vencido há ${Math.abs(dias)}d` : `${dias} dia(s)`}
                     </p>
-                    <p className="text-[9px] text-muted-foreground">
-                      {format(parseISO(c.data_validade), "dd/MM/yyyy")}
-                    </p>
+                    <p className="text-[9px] text-muted-foreground">{format(parseISO(c.data_validade), "dd/MM/yyyy")}</p>
                   </div>
                 </Link>
               );
@@ -248,7 +260,7 @@ function Dashboard() {
         </CardHeader>
         <CardContent className="p-0">
           {pefMateriais.length === 0 ? (
-            <p className="text-sm text-muted-foreground px-6 pb-4">Nenhum material aguardando guia de transferência no momento.</p>
+            <p className="text-sm text-muted-foreground px-6 pb-4">Nenhum material aguardando guia de transferência.</p>
           ) : (
             <Table>
               <TableHeader>
@@ -268,9 +280,7 @@ function Dashboard() {
                     <TableCell className="text-sm font-mono">{e.numero_serie ?? "—"}</TableCell>
                     <TableCell className="text-sm">{e.localizacao ?? "—"}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="capitalize text-xs">
-                        {situacaoLabel(e.situacao)}
-                      </Badge>
+                      <Badge variant="outline" className="capitalize text-xs">{situacaoLabel(e.situacao)}</Badge>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -287,8 +297,8 @@ function Dashboard() {
           <CardContent style={{ height: 280 }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={counts.filter(c => c.value > 0)} dataKey="value" nameKey="name" outerRadius={90} label>
-                  {counts.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                <Pie data={pieData} dataKey="value" nameKey="name" outerRadius={90} label>
+                  {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Pie>
                 <Tooltip />
               </PieChart>

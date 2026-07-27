@@ -128,6 +128,13 @@ function NovaCautela() {
       const { error: itErr } = await supabase.from("cautela_itens").insert(itens);
       if (itErr) throw itErr;
 
+      // Atualizar situacao do equipamento conforme tipo da cautela
+      const situacaoDestino = tipoCautela === "servico" ? "cautela_servico" : "em_cautela";
+      await supabase
+        .from("equipamentos")
+        .update({ situacao: situacaoDestino })
+        .in("id", selectedIds);
+
       toast.success(`Cautela ${cautela.numero} emitida`);
       nav({ to: "/cautelas" });
     } catch (e: any) {

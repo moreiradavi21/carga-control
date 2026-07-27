@@ -107,6 +107,7 @@ export function DescautelaModal({ cautelaId, onClose }: Props) {
       }
 
       // 3. Inserir movimentações (histórico imutável — uma por equipamento)
+      // situacao aqui se refere ao estado de devolução (sem/com_alteracoes), não à situacao do equipamento
       const descMovimento = situacao === "com_alteracoes"
         ? `Descautela confirmada. Recebido por: ${quemRecebeu}. Com alterações — ${descAlteracoes}`
         : `Descautela confirmada. Recebido por: ${quemRecebeu}. Sem alterações.`;
