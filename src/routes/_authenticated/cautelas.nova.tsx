@@ -99,9 +99,8 @@ function NovaCautela() {
       const { data: user } = await supabase.auth.getUser();
       const { data: numeroData } = await supabase.rpc("gerar_numero_cautela");
 
-      const payload: any = {
+      const basePayload: any = {
         numero: numeroData ?? `${new Date().getFullYear()}-${Date.now()}`,
-        tipo: tipoCautela,
         militar_responsavel: militarResp,
         posto_responsavel: postoResp || null,
         militar_retirada: militarRet,
@@ -114,12 +113,26 @@ function NovaCautela() {
         status: "ativa",
       };
 
-      const { data: cautela, error } = await supabase
+      // Tenta incluir o campo tipo; se a coluna ainda não existir (migração pendente), salva sem ele
+      let cautela: any;
+      const { data: c1, error: e1 } = await supabase
         .from("cautelas")
-        .insert(payload)
+        .insert({ ...basePayload, tipo: tipoCautela })
         .select()
         .single();
-      if (error) throw error;
+
+      if (e1) {
+        // Coluna tipo ainda não existe — salva sem ela
+        const { data: c2, error: e2 } = await supabase
+          .from("cautelas")
+          .insert(basePayload)
+          .select()
+          .single();
+        if (e2) throw e2;
+        cautela = c2;
+      } else {
+        cautela = c1;
+      }
 
       const itens = selectedIds.map((eid) => ({
         cautela_id: cautela.id,
@@ -129,11 +142,19 @@ function NovaCautela() {
       if (itErr) throw itErr;
 
       // Atualizar situacao do equipamento conforme tipo da cautela
+      // Se cautela_servico ainda não existir no enum do banco, usa em_cautela como fallback
       const situacaoDestino = tipoCautela === "servico" ? "cautela_servico" : "em_cautela";
-      await supabase
+      const { error: sitErr } = await supabase
         .from("equipamentos")
         .update({ situacao: situacaoDestino })
         .in("id", selectedIds);
+      if (sitErr) {
+        // Enum cautela_servico ainda não existe — atualiza para em_cautela
+        await supabase
+          .from("equipamentos")
+          .update({ situacao: "em_cautela" })
+          .in("id", selectedIds);
+      }
 
       toast.success(`Cautela ${cautela.numero} emitida`);
       nav({ to: "/cautelas" });
