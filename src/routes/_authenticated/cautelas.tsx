@@ -206,12 +206,12 @@ function CautelasPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Número</TableHead>
-                      <TableHead>Militar cautelante</TableHead>
+                      <TableHead>Quem descautelou</TableHead>
+                      <TableHead>Quem recebeu</TableHead>
+                      <TableHead>Data descautela</TableHead>
                       <TableHead>Companhia</TableHead>
                       <TableHead>Data cautela</TableHead>
                       <TableHead>Itens</TableHead>
-                      <TableHead>Quem devolveu</TableHead>
-                      <TableHead>Data descautela</TableHead>
                       <TableHead>Situação</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
@@ -222,14 +222,23 @@ function CautelasPage() {
                       return (
                         <TableRow key={c.id}>
                           <TableCell className="font-mono font-semibold">{c.numero}</TableCell>
+                          {/* Quem tinha o material e o devolveu */}
                           <TableCell>
-                            <div className="text-sm font-medium">{c.posto_responsavel} {c.militar_responsavel}</div>
+                            <div className="text-sm font-medium">
+                              {[c.posto_retirada, c.militar_retirada].filter(Boolean).join(" ") || "—"}
+                            </div>
+                          </TableCell>
+                          {/* Quem recebeu o material de volta */}
+                          <TableCell className="text-sm font-medium">
+                            {c.quem_descautelou ?? "—"}
+                          </TableCell>
+                          {/* Data da devolução */}
+                          <TableCell className="text-sm font-medium">
+                            {formatDateTime(c.data_descautela)}
                           </TableCell>
                           <TableCell className="text-sm">{c.companhias?.nome ?? "—"}</TableCell>
                           <TableCell className="text-sm">{formatDate(c.data_saida)}</TableCell>
                           <TableCell className="text-sm">{c.cautela_itens?.length ?? 0}</TableCell>
-                          <TableCell className="text-sm">{c.quem_descautelou ?? "—"}</TableCell>
-                          <TableCell className="text-sm">{formatDateTime(c.data_descautela)}</TableCell>
                           <TableCell>
                             {c.situacao_devolucao ? (
                               <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold border ${
@@ -270,7 +279,7 @@ function CautelasPage() {
                     })}
                     {cautelasFinalizadas.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                        <TableCell colSpan={9} className="text-center text-muted-foreground py-8" >
                           Nenhuma descautela registrada
                         </TableCell>
                       </TableRow>
