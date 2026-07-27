@@ -1,14 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { differenceInDays, format, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import {
   Calendar, Upload, CheckCircle2, Clock, AlertTriangle,
   Save, Pencil, Plus, Trash2, ExternalLink, ChevronDown,
@@ -284,30 +282,36 @@ function PagamentosAnuais({ contrato }: { contrato: Contrato }) {
                   </td>
                   <td className="py-2 pr-4">
                     {pag?.arquivo_nome ? (
-                      <div className="flex items-center gap-1.5">
-                        <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                        <span className="text-xs truncate max-w-[160px]" title={pag.arquivo_nome}>
-                          {pag.arquivo_nome}
-                        </span>
-                        {pag.arquivo_url && (
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1.5">
+                          <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="text-xs truncate max-w-[160px]" title={pag.arquivo_nome}>
+                            {pag.arquivo_nome}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removerArquivo(pag)}
+                            className="text-muted-foreground hover:text-destructive shrink-0"
+                            title="Remover arquivo"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                        {pag.arquivo_url ? (
                           <a
                             href={pag.arquivo_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-primary hover:text-primary/80 shrink-0"
-                            title="Visualizar arquivo"
+                            className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
                           >
-                            <ExternalLink className="h-3.5 w-3.5" />
+                            <ExternalLink className="h-3 w-3" />
+                            Visualizar arquivo
                           </a>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground italic">
+                            Arquivo salvo localmente (sem URL)
+                          </span>
                         )}
-                        <button
-                          type="button"
-                          onClick={() => removerArquivo(pag)}
-                          className="text-muted-foreground hover:text-destructive shrink-0"
-                          title="Remover arquivo"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
                       </div>
                     ) : (
                       <span className="text-xs text-muted-foreground">—</span>
