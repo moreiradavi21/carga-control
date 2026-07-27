@@ -5,21 +5,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { differenceInDays, format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import {
-  Calendar,
-  Upload,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  ChevronLeft,
-  ChevronRight,
-  Save,
-  Pencil,
+  Calendar, Upload, CheckCircle2, Clock, AlertTriangle,
+  Save, Pencil, Plus, Trash2, ExternalLink, ChevronDown,
+  ChevronUp, FileText, X,
 } from "lucide-react";
 
-const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+// ─── Ano fixo para pagamento anual (mes = 1 como constante) ────────────────
+const MES_ANUAL = 1;
 
 type Contrato = {
   id: string;
@@ -27,6 +24,7 @@ type Contrato = {
   fornecedor: string;
   data_inicio: string;
   data_validade: string;
+  descricao_contrato?: string | null;
 };
 
 type Pagamento = {
@@ -53,65 +51,29 @@ export function badgeVencimento(dias: number): { label: string; className: strin
   return { label: `${dias} dia(s) restantes`, className: "bg-emerald-100 text-emerald-700 border-emerald-300" };
 }
 
-export function ContratoPage({ tipo, label }: { tipo: string; label: string }) {
-  const qc = useQueryClient();
-  const now = new Date();
-  const [ano, setAno] = useState(now.getFullYear());
-  const [form, setForm] = useState({ fornecedor: "", data_inicio: "", data_validade: "" });
-  const [editing, setEditing] = useState(false);
+// ─── Formulário de cadastro/edição de contrato ──────────────────────────────
+function FormContrato({
+  tipo,
+  inicial,
+  onSalvo,
+  onCancelar,
+}: {
+  tipo: string;
+  inicial?: Contrato | null;
+  onSalvo: () => void;
+  onCancelar: () => void;
+}) {
+  const [form, setForm] = useState({
+    fornecedor: inicial?.fornecedor ?? "",
+    descricao_contrato: inicial?.descricao_contrato ?? "",
+    data_inicio: inicial?.data_inicio ?? "",
+    data_validade: inicial?.data_validade ?? "",
+  });
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState<string | null>(null);
 
-  // ── Carregar contrato ───────────────────────────────────────────
-  const { data: contrato, isLoading } = useQuery({
-    queryKey: ["contrato", tipo],
-    queryFn: async () => {
-      try {
-        const { data } = await supabase
-          .from("contratos")
-          .select("*")
-          .eq("tipo", tipo)
-          .maybeSingle();
-        return data as Contrato | null;
-      } catch {
-        return null;
-      }
-    },
-  });
-
-  useEffect(() => {
-    if (contrato) {
-      setForm({
-        fornecedor: contrato.fornecedor,
-        data_inicio: contrato.data_inicio,
-        data_validade: contrato.data_validade,
-      });
-    }
-  }, [contrato]);
-
-  // ── Carregar pagamentos do ano selecionado ──────────────────────
-  const { data: pagamentos = [] } = useQuery({
-    queryKey: ["pagamentos", contrato?.id, ano],
-    queryFn: async () => {
-      if (!contrato?.id) return [] as Pagamento[];
-      try {
-        const { data } = await supabase
-          .from("pagamentos_contrato")
-          .select("*")
-          .eq("contrato_id", contrato.id)
-          .eq("ano", ano);
-        return (data ?? []) as Pagamento[];
-      } catch {
-        return [] as Pagamento[];
-      }
-    },
-    enabled: !!contrato?.id,
-  });
-
-  // ── Salvar / atualizar contrato ─────────────────────────────────
-  async function salvarContrato() {
+  async function salvar() {
     if (!form.fornecedor.trim() || !form.data_inicio || !form.data_validade) {
-      toast.error("Preencha todos os campos: Fornecedor, Data de início e Data de validade.");
+      toast.error("Preencha Fornecedor, Data de início e Data de validade.");
       return;
     }
     setSaving(true);
@@ -119,20 +81,20 @@ export function ContratoPage({ tipo, label }: { tipo: string; label: string }) {
       const payload = {
         tipo,
         fornecedor: form.fornecedor.trim(),
+        descricao_contrato: form.descricao_contrato.trim() || null,
         data_inicio: form.data_inicio,
         data_validade: form.data_validade,
       };
-      if (contrato?.id) {
-        const { error } = await supabase.from("contratos").update(payload).eq("id", contrato.id);
+      if (inicial?.id) {
+        const { error } = await supabase.from("contratos").update(payload).eq("id", inicial.id);
         if (error) throw error;
+        toast.success("Contrato atualizado.");
       } else {
         const { error } = await supabase.from("contratos").insert(payload);
         if (error) throw error;
+        toast.success("Contrato cadastrado.");
       }
-      toast.success("Contrato salvo com sucesso.");
-      setEditing(false);
-      qc.invalidateQueries({ queryKey: ["contrato", tipo] });
-      qc.invalidateQueries({ queryKey: ["contratos-dashboard"] });
+      onSalvo();
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao salvar contrato.");
     } finally {
@@ -140,61 +102,125 @@ export function ContratoPage({ tipo, label }: { tipo: string; label: string }) {
     }
   }
 
-  // ── Marcar/desmarcar mês como pago ─────────────────────────────
-  async function togglePago(mes: number) {
-    if (!contrato?.id) return;
-    const pag = pagamentos.find((p) => p.mes === mes);
+  return (
+    <div className="space-y-4 border rounded-lg p-4 bg-muted/20">
+      <p className="text-sm font-semibold">{inicial ? "Editar contrato" : "Novo contrato"}</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label className="text-xs">Fornecedor *</Label>
+          <Input
+            value={form.fornecedor}
+            onChange={(e) => setForm((f) => ({ ...f, fornecedor: e.target.value }))}
+            placeholder="Nome do fornecedor"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Identificação do contrato</Label>
+          <Input
+            value={form.descricao_contrato}
+            onChange={(e) => setForm((f) => ({ ...f, descricao_contrato: e.target.value }))}
+            placeholder="Ex.: Contrato nº 001/2026, VSAT-01..."
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Data de início *</Label>
+          <Input
+            type="date"
+            value={form.data_inicio}
+            onChange={(e) => setForm((f) => ({ ...f, data_inicio: e.target.value }))}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Data de validade *</Label>
+          <Input
+            type="date"
+            value={form.data_validade}
+            onChange={(e) => setForm((f) => ({ ...f, data_validade: e.target.value }))}
+          />
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button size="sm" onClick={salvar} disabled={saving}>
+          <Save className="h-3.5 w-3.5 mr-1" />
+          {saving ? "Salvando..." : "Salvar"}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onCancelar}>Cancelar</Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Tracker de pagamentos anuais de um contrato ────────────────────────────
+function PagamentosAnuais({ contrato }: { contrato: Contrato }) {
+  const qc = useQueryClient();
+  const [uploading, setUploading] = useState<number | null>(null);
+
+  const startYear = parseISO(contrato.data_inicio).getFullYear();
+  const endYear = parseISO(contrato.data_validade).getFullYear();
+  const anos = Array.from(
+    { length: Math.max(endYear - startYear + 1, 1) },
+    (_, i) => startYear + i
+  );
+
+  const { data: pagamentos = [] } = useQuery({
+    queryKey: ["pagamentos-anuais", contrato.id],
+    queryFn: async () => {
+      try {
+        const { data } = await supabase
+          .from("pagamentos_contrato")
+          .select("*")
+          .eq("contrato_id", contrato.id)
+          .eq("mes", MES_ANUAL);
+        return (data ?? []) as Pagamento[];
+      } catch { return [] as Pagamento[]; }
+    },
+  });
+
+  function pagDoAno(ano: number): Pagamento | undefined {
+    return pagamentos.find((p) => p.ano === ano);
+  }
+
+  async function togglePago(ano: number) {
+    const pag = pagDoAno(ano);
     try {
       if (pag) {
-        await supabase
-          .from("pagamentos_contrato")
-          .update({ pago: !pag.pago })
-          .eq("id", pag.id);
+        await supabase.from("pagamentos_contrato").update({ pago: !pag.pago }).eq("id", pag.id);
       } else {
         await supabase.from("pagamentos_contrato").insert({
-          contrato_id: contrato.id,
-          ano,
-          mes,
-          pago: true,
+          contrato_id: contrato.id, ano, mes: MES_ANUAL, pago: true,
         });
       }
-      qc.invalidateQueries({ queryKey: ["pagamentos", contrato.id, ano] });
+      qc.invalidateQueries({ queryKey: ["pagamentos-anuais", contrato.id] });
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao atualizar pagamento.");
     }
   }
 
-  // ── Upload de comprovante ───────────────────────────────────────
-  async function uploadArquivo(mes: number, file: File) {
-    if (!contrato?.id) return;
-    setUploading(`${mes}`);
+  async function uploadArquivo(ano: number, file: File) {
+    setUploading(ano);
     try {
+      const path = `${contrato.tipo}/${contrato.id}/${ano}/${file.name}`;
       let arquivo_url: string | null = null;
-      const path = `${tipo}/${ano}/${mes}/${file.name}`;
       const { error: upErr } = await supabase.storage
         .from("contratos-pagamentos")
         .upload(path, file, { upsert: true });
       if (!upErr) {
         arquivo_url = supabase.storage.from("contratos-pagamentos").getPublicUrl(path).data.publicUrl;
       }
-      const pag = pagamentos.find((p) => p.mes === mes);
+      const pag = pagDoAno(ano);
       const payload = { arquivo_nome: file.name, arquivo_url, pago: true };
       if (pag) {
         await supabase.from("pagamentos_contrato").update(payload).eq("id", pag.id);
       } else {
         await supabase.from("pagamentos_contrato").insert({
-          contrato_id: contrato.id,
-          ano,
-          mes,
-          ...payload,
+          contrato_id: contrato.id, ano, mes: MES_ANUAL, ...payload,
         });
       }
-      toast.success(
-        upErr
-          ? `Pagamento de ${MESES[mes - 1]} registrado (arquivo não salvo na nuvem).`
-          : `Arquivo "${file.name}" enviado para ${MESES[mes - 1]}/${ano}.`
+      toast.success(upErr
+        ? `Pagamento de ${ano} registrado (arquivo não salvo na nuvem).`
+        : `Arquivo "${file.name}" enviado para ${ano}.`
       );
-      qc.invalidateQueries({ queryKey: ["pagamentos", contrato.id, ano] });
+      qc.invalidateQueries({ queryKey: ["pagamentos-anuais", contrato.id] });
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao enviar arquivo.");
     } finally {
@@ -202,241 +228,311 @@ export function ContratoPage({ tipo, label }: { tipo: string; label: string }) {
     }
   }
 
-  const dias = contrato ? diasRestantesContrato(contrato.data_validade) : null;
-  const badge = dias !== null ? badgeVencimento(dias) : null;
+  async function removerArquivo(pag: Pagamento) {
+    try {
+      await supabase.from("pagamentos_contrato").update({
+        arquivo_nome: null,
+        arquivo_url: null,
+      }).eq("id", pag.id);
+      qc.invalidateQueries({ queryKey: ["pagamentos-anuais", contrato.id] });
+      toast.success("Arquivo removido.");
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao remover arquivo.");
+    }
+  }
+
+  const nowYear = new Date().getFullYear();
 
   return (
-    <div className="space-y-4">
-      {/* Cabeçalho */}
-      <div>
-        <h2 className="text-2xl font-bold">{label}</h2>
-        <p className="text-sm text-muted-foreground">
-          Gestão de contrato e acompanhamento de pagamentos mensais
-        </p>
+    <div className="mt-3 space-y-2">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+        Pagamentos Anuais
+      </p>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b text-xs text-muted-foreground">
+              <th className="text-left py-1.5 pr-4 font-medium">Ano</th>
+              <th className="text-left py-1.5 pr-4 font-medium">Situação</th>
+              <th className="text-left py-1.5 pr-4 font-medium">Comprovante</th>
+              <th className="text-right py-1.5 font-medium">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {anos.map((ano) => {
+              const pag = pagDoAno(ano);
+              const isFuture = ano > nowYear;
+              const isPago = pag?.pago ?? false;
+
+              return (
+                <tr key={ano} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                  <td className="py-2 pr-4 font-mono font-semibold">{ano}</td>
+                  <td className="py-2 pr-4">
+                    {isPago ? (
+                      <span className="inline-flex items-center gap-1 text-emerald-700 text-xs font-medium">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Pago
+                      </span>
+                    ) : isFuture ? (
+                      <span className="inline-flex items-center gap-1 text-muted-foreground text-xs">
+                        <Clock className="h-3.5 w-3.5" /> Futuro
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-amber-600 text-xs font-medium">
+                        <AlertTriangle className="h-3.5 w-3.5" /> Pendente
+                      </span>
+                    )}
+                  </td>
+                  <td className="py-2 pr-4">
+                    {pag?.arquivo_nome ? (
+                      <div className="flex items-center gap-1.5">
+                        <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="text-xs truncate max-w-[160px]" title={pag.arquivo_nome}>
+                          {pag.arquivo_nome}
+                        </span>
+                        {pag.arquivo_url && (
+                          <a
+                            href={pag.arquivo_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:text-primary/80 shrink-0"
+                            title="Visualizar arquivo"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removerArquivo(pag)}
+                          className="text-muted-foreground hover:text-destructive shrink-0"
+                          title="Remover arquivo"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </td>
+                  <td className="py-2">
+                    <div className="flex justify-end items-center gap-1.5">
+                      <Button
+                        variant={isPago ? "outline" : "default"}
+                        size="sm"
+                        className="h-7 text-xs px-2.5"
+                        onClick={() => togglePago(ano)}
+                      >
+                        {isPago ? "✓ Pago" : "Marcar pago"}
+                      </Button>
+                      <label className={`inline-flex items-center gap-1 h-7 px-2.5 text-xs border rounded-md cursor-pointer transition-colors hover:bg-accent ${uploading === ano ? "opacity-50 cursor-not-allowed" : ""}`}>
+                        <input
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                          className="hidden"
+                          disabled={uploading === ano}
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) uploadArquivo(ano, f);
+                            e.target.value = "";
+                          }}
+                        />
+                        <Upload className="h-3 w-3" />
+                        {uploading === ano ? "..." : "Arquivo"}
+                      </label>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── Card individual de contrato ────────────────────────────────────────────
+function ContratoCard({
+  contrato,
+  tipo,
+  onEditado,
+  onExcluido,
+}: {
+  contrato: Contrato;
+  tipo: string;
+  onEditado: () => void;
+  onExcluido: () => void;
+}) {
+  const [expandido, setExpandido] = useState(false);
+  const [editando, setEditando] = useState(false);
+
+  const dias = diasRestantesContrato(contrato.data_validade);
+  const badge = badgeVencimento(dias);
+
+  async function excluir() {
+    if (!confirm(`Excluir o contrato "${contrato.fornecedor}"? Todos os pagamentos vinculados serão removidos.`)) return;
+    try {
+      // Remove pagamentos vinculados primeiro
+      await supabase.from("pagamentos_contrato").delete().eq("contrato_id", contrato.id);
+      const { error } = await supabase.from("contratos").delete().eq("id", contrato.id);
+      if (error) throw error;
+      toast.success("Contrato excluído.");
+      onExcluido();
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao excluir contrato.");
+    }
+  }
+
+  if (editando) {
+    return (
+      <FormContrato
+        tipo={tipo}
+        inicial={contrato}
+        onSalvo={() => { setEditando(false); onEditado(); }}
+        onCancelar={() => setEditando(false)}
+      />
+    );
+  }
+
+  return (
+    <div className={`border rounded-lg overflow-hidden transition-all ${dias < 0 ? "border-red-300" : dias <= 90 ? "border-amber-300" : "border-border"}`}>
+      {/* Cabeçalho do contrato */}
+      <div
+        className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/20 transition-colors"
+        onClick={() => setExpandido((v) => !v)}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+          <div className="min-w-0">
+            <p className="font-semibold text-sm leading-tight">{contrato.fornecedor}</p>
+            {contrato.descricao_contrato && (
+              <p className="text-xs text-muted-foreground">{contrato.descricao_contrato}</p>
+            )}
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {format(parseISO(contrato.data_inicio), "dd/MM/yyyy")} →{" "}
+              <span className={dias <= 30 ? "text-red-600 font-medium" : dias <= 90 ? "text-amber-600 font-medium" : ""}>
+                {format(parseISO(contrato.data_validade), "dd/MM/yyyy")}
+              </span>
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${badge.className} hidden sm:inline-flex`}>
+            {badge.label}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={(e) => { e.stopPropagation(); setEditando(true); }}
+            title="Editar"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={(e) => { e.stopPropagation(); excluir(); }}
+            title="Excluir"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+          {expandido
+            ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+        </div>
       </div>
 
-      {/* ── Card do contrato ── */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center justify-between flex-wrap gap-2">
-            <span className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Dados do Contrato
-            </span>
-            {badge && (
-              <span
-                className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${badge.className}`}
-              >
-                {badge.label}
-              </span>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <p className="text-sm text-muted-foreground">Carregando...</p>
-          ) : editing || !contrato ? (
-            <div className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium">Fornecedor *</Label>
-                  <Input
-                    value={form.fornecedor}
-                    onChange={(e) => setForm((f) => ({ ...f, fornecedor: e.target.value }))}
-                    placeholder="Nome do fornecedor"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium">Data de início *</Label>
-                  <Input
-                    type="date"
-                    value={form.data_inicio}
-                    onChange={(e) => setForm((f) => ({ ...f, data_inicio: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium">Data de validade *</Label>
-                  <Input
-                    type="date"
-                    value={form.data_validade}
-                    onChange={(e) => setForm((f) => ({ ...f, data_validade: e.target.value }))}
-                  />
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button size="sm" onClick={salvarContrato} disabled={saving}>
-                  <Save className="h-3 w-3 mr-1" />
-                  {saving ? "Salvando..." : "Salvar contrato"}
-                </Button>
-                {contrato && (
-                  <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
-                    Cancelar
-                  </Button>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Fornecedor</p>
-                  <p className="font-medium">{contrato.fornecedor}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Data de início</p>
-                  <p className="font-medium">
-                    {format(parseISO(contrato.data_inicio), "dd/MM/yyyy")}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Data de validade</p>
-                  <p
-                    className={`font-medium ${
-                      dias !== null && dias <= 30
-                        ? "text-red-600"
-                        : dias !== null && dias <= 90
-                        ? "text-amber-600"
-                        : ""
-                    }`}
-                  >
-                    {format(parseISO(contrato.data_validade), "dd/MM/yyyy")}
-                  </p>
-                </div>
-              </div>
-              <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
-                <Pencil className="h-3 w-3 mr-1" />
-                Editar contrato
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Badge mobile */}
+      <div className="px-4 pb-2 sm:hidden">
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${badge.className}`}>
+          {badge.label}
+        </span>
+      </div>
 
-      {/* ── Tracker de pagamentos mensais ── */}
-      {contrato && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center justify-between">
-              <span>Pagamentos Mensais</span>
-              <div className="flex items-center gap-0.5">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => setAno((a) => a - 1)}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-sm font-bold w-14 text-center tabular-nums">{ano}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => setAno((a) => a + 1)}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-              {MESES.map((nome, i) => {
-                const mes = i + 1;
-                const pag = pagamentos.find((p) => p.mes === mes);
-                const isFuture =
-                  ano > now.getFullYear() ||
-                  (ano === now.getFullYear() && mes > now.getMonth() + 1);
+      {/* Pagamentos (expandido) */}
+      {expandido && (
+        <div className="border-t px-4 pb-4 pt-3 bg-muted/10">
+          <PagamentosAnuais contrato={contrato} />
+        </div>
+      )}
+    </div>
+  );
+}
 
-                return (
-                  <div
-                    key={mes}
-                    className={`border rounded-lg p-2 text-center space-y-1.5 transition-colors ${
-                      pag?.pago
-                        ? "bg-emerald-50 border-emerald-300"
-                        : isFuture
-                        ? "bg-muted/20 border-border"
-                        : "bg-amber-50 border-amber-200"
-                    }`}
-                  >
-                    <p className="text-xs font-semibold">{nome}</p>
+// ─── Página principal ────────────────────────────────────────────────────────
+export function ContratoPage({ tipo, label }: { tipo: string; label: string }) {
+  const qc = useQueryClient();
+  const [showForm, setShowForm] = useState(false);
 
-                    {pag?.pago ? (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600 mx-auto" />
-                    ) : isFuture ? (
-                      <Clock className="h-4 w-4 text-muted-foreground/40 mx-auto" />
-                    ) : (
-                      <AlertTriangle className="h-4 w-4 text-amber-500 mx-auto" />
-                    )}
+  const { data: contratos = [], isLoading } = useQuery({
+    queryKey: ["contratos", tipo],
+    queryFn: async () => {
+      try {
+        const { data } = await supabase
+          .from("contratos")
+          .select("*")
+          .eq("tipo", tipo)
+          .order("data_inicio", { ascending: false });
+        return (data ?? []) as Contrato[];
+      } catch { return [] as Contrato[]; }
+    },
+  });
 
-                    {pag?.arquivo_nome && (
-                      <p
-                        className="text-[9px] text-muted-foreground truncate leading-tight"
-                        title={pag.arquivo_nome}
-                      >
-                        📎 {pag.arquivo_nome}
-                      </p>
-                    )}
+  function recarregar() {
+    qc.invalidateQueries({ queryKey: ["contratos", tipo] });
+    qc.invalidateQueries({ queryKey: ["contratos-dashboard"] });
+    setShowForm(false);
+  }
 
-                    <Button
-                      variant={pag?.pago ? "outline" : "default"}
-                      size="sm"
-                      className="h-6 text-[10px] w-full px-1"
-                      onClick={() => togglePago(mes)}
-                    >
-                      {pag?.pago ? "✓ Pago" : "Marcar"}
-                    </Button>
+  return (
+    <div className="space-y-4 max-w-4xl">
+      {/* Cabeçalho */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h2 className="text-2xl font-bold">{label}</h2>
+          <p className="text-sm text-muted-foreground">
+            {contratos.length} contrato(s) cadastrado(s)
+          </p>
+        </div>
+        <Button onClick={() => setShowForm((v) => !v)}>
+          {showForm ? <X className="h-4 w-4 mr-1" /> : <Plus className="h-4 w-4 mr-1" />}
+          {showForm ? "Cancelar" : "Novo contrato"}
+        </Button>
+      </div>
 
-                    {/* Upload de comprovante */}
-                    <label
-                      className={`flex items-center justify-center w-full h-6 text-[10px] border rounded gap-0.5 transition-colors ${
-                        uploading === `${mes}`
-                          ? "opacity-50 cursor-not-allowed bg-muted"
-                          : "hover:bg-accent cursor-pointer"
-                      }`}
-                    >
-                      <input
-                        type="file"
-                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
-                        className="hidden"
-                        disabled={uploading === `${mes}`}
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (f) uploadArquivo(mes, f);
-                          e.target.value = "";
-                        }}
-                      />
-                      <Upload className="h-2.5 w-2.5" />
-                      {uploading === `${mes}` ? "..." : "Arquivo"}
-                    </label>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Legenda */}
-            <div className="flex gap-4 mt-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 inline-block shrink-0" />
-                Pago
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-amber-400 inline-block shrink-0" />
-                Pendente
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/30 inline-block shrink-0" />
-                Futuro
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Formulário de novo contrato */}
+      {showForm && (
+        <FormContrato
+          tipo={tipo}
+          onSalvo={recarregar}
+          onCancelar={() => setShowForm(false)}
+        />
       )}
 
-      {!contrato && !isLoading && (
-        <p className="text-center text-sm text-muted-foreground py-2">
-          Cadastre os dados do contrato acima para começar a registrar os pagamentos mensais.
-        </p>
+      {/* Lista de contratos */}
+      {isLoading ? (
+        <p className="text-sm text-muted-foreground">Carregando...</p>
+      ) : contratos.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Calendar className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">Nenhum contrato cadastrado.</p>
+            <p className="text-xs text-muted-foreground mt-1">Clique em "Novo contrato" para começar.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {contratos.map((c) => (
+            <ContratoCard
+              key={c.id}
+              contrato={c}
+              tipo={tipo}
+              onEditado={recarregar}
+              onExcluido={recarregar}
+            />
+          ))}
+        </div>
       )}
     </div>
   );

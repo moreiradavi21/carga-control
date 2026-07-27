@@ -61,8 +61,15 @@ function Dashboard() {
       try {
         const { data } = await supabase
           .from("contratos")
-          .select("tipo, fornecedor, data_validade");
-        return (data ?? []) as { tipo: string; fornecedor: string; data_validade: string }[];
+          .select("tipo, fornecedor, data_validade")
+          .order("data_validade", { ascending: false });
+        if (!data) return [];
+        // Pega o contrato com validade mais recente por tipo (para exibir no painel)
+        const porTipo: Record<string, { tipo: string; fornecedor: string; data_validade: string }> = {};
+        for (const c of data) {
+          if (!porTipo[c.tipo]) porTipo[c.tipo] = c;
+        }
+        return Object.values(porTipo) as { tipo: string; fornecedor: string; data_validade: string }[];
       } catch {
         return [];
       }
