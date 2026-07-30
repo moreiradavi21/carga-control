@@ -140,11 +140,15 @@ export type Database = {
           companhia_id: string
           created_at: string
           created_by: string | null
+          data_descautela: string | null
           data_saida: string
+          descautelado_por: string | null
+          descricao_alteracoes: string | null
           finalidade: string | null
           finalizada_em: string | null
           finalizada_por: string | null
           id: string
+          imagem_alteracao_url: string | null
           militar_responsavel: string
           militar_retirada: string
           numero: string
@@ -152,7 +156,10 @@ export type Database = {
           posto_responsavel: string | null
           posto_retirada: string | null
           previsao_devolucao: string | null
+          quem_descautelou: string | null
+          situacao_devolucao: string | null
           status: Database["public"]["Enums"]["status_cautela"]
+          tipo: string
           updated_at: string
         }
         Insert: {
@@ -161,11 +168,15 @@ export type Database = {
           companhia_id: string
           created_at?: string
           created_by?: string | null
+          data_descautela?: string | null
           data_saida?: string
+          descautelado_por?: string | null
+          descricao_alteracoes?: string | null
           finalidade?: string | null
           finalizada_em?: string | null
           finalizada_por?: string | null
           id?: string
+          imagem_alteracao_url?: string | null
           militar_responsavel: string
           militar_retirada: string
           numero: string
@@ -173,7 +184,10 @@ export type Database = {
           posto_responsavel?: string | null
           posto_retirada?: string | null
           previsao_devolucao?: string | null
+          quem_descautelou?: string | null
+          situacao_devolucao?: string | null
           status?: Database["public"]["Enums"]["status_cautela"]
+          tipo?: string
           updated_at?: string
         }
         Update: {
@@ -182,11 +196,15 @@ export type Database = {
           companhia_id?: string
           created_at?: string
           created_by?: string | null
+          data_descautela?: string | null
           data_saida?: string
+          descautelado_por?: string | null
+          descricao_alteracoes?: string | null
           finalidade?: string | null
           finalizada_em?: string | null
           finalizada_por?: string | null
           id?: string
+          imagem_alteracao_url?: string | null
           militar_responsavel?: string
           militar_retirada?: string
           numero?: string
@@ -194,7 +212,10 @@ export type Database = {
           posto_responsavel?: string | null
           posto_retirada?: string | null
           previsao_devolucao?: string | null
+          quem_descautelou?: string | null
+          situacao_devolucao?: string | null
           status?: Database["public"]["Enums"]["status_cautela"]
+          tipo?: string
           updated_at?: string
         }
         Relationships: [
@@ -231,6 +252,7 @@ export type Database = {
           created_by: string | null
           data_inicio: string
           data_validade: string
+          descricao_contrato: string | null
           fornecedor: string
           id: string
           tipo: string
@@ -241,6 +263,7 @@ export type Database = {
           created_by?: string | null
           data_inicio: string
           data_validade: string
+          descricao_contrato?: string | null
           fornecedor: string
           id?: string
           tipo: string
@@ -251,6 +274,7 @@ export type Database = {
           created_by?: string | null
           data_inicio?: string
           data_validade?: string
+          descricao_contrato?: string | null
           fornecedor?: string
           id?: string
           tipo?: string
@@ -265,6 +289,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           descricao: string
+          descricao_alteracoes_devolucao: string | null
+          devolvido_com_alteracoes: boolean
           foto_url: string | null
           id: string
           localizacao: string | null
@@ -283,6 +309,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descricao: string
+          descricao_alteracoes_devolucao?: string | null
+          devolvido_com_alteracoes?: boolean
           foto_url?: string | null
           id?: string
           localizacao?: string | null
@@ -301,6 +329,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descricao?: string
+          descricao_alteracoes_devolucao?: string | null
+          devolvido_com_alteracoes?: boolean
           foto_url?: string | null
           id?: string
           localizacao?: string | null
@@ -512,6 +542,8 @@ export type Database = {
         | "em_sindicancia"
         | "baixado"
         | "em_manutencao"
+        | "cautela_servico"
+        | "descarga"
       status_cautela: "ativa" | "finalizada" | "cancelada"
     }
     CompositeTypes: {
@@ -648,6 +680,8 @@ export const Constants = {
         "em_sindicancia",
         "baixado",
         "em_manutencao",
+        "cautela_servico",
+        "descarga",
       ],
       status_cautela: ["ativa", "finalizada", "cancelada"],
     },
