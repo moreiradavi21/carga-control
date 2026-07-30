@@ -512,6 +512,8 @@ export type Database = {
         | "em_sindicancia"
         | "baixado"
         | "em_manutencao"
+        | "cautela_servico"
+        | "descarga"
       status_cautela: "ativa" | "finalizada" | "cancelada"
     }
     CompositeTypes: {
@@ -648,6 +650,8 @@ export const Constants = {
         "em_sindicancia",
         "baixado",
         "em_manutencao",
+        "cautela_servico",
+        "descarga",
       ],
       status_cautela: ["ativa", "finalizada", "cancelada"],
     },
