@@ -112,7 +112,7 @@ export function DescautelaModal({ cautelaId, onClose }: Props) {
         ? `Descautela confirmada. Recebido por: ${quemRecebeu}. Com alterações — ${descAlteracoes}`
         : `Descautela confirmada. Recebido por: ${quemRecebeu}. Sem alterações.`;
 
-      const movs = itens
+      const movs: any[] = itens
         .filter((it: any) => it.equipamentos?.id)
         .map((it: any) => ({
           equipamento_id: it.equipamentos.id,
@@ -124,13 +124,13 @@ export function DescautelaModal({ cautelaId, onClose }: Props) {
           user_id: userId,
         }));
       if (movs.length > 0) {
-        await supabase.from("movimentacoes").insert(movs);
+        await supabase.from("movimentacoes").insert(movs as any);
       }
 
       // 4a. Atualizar status para finalizada — obrigatório, verifica erro
       const { error: statusErr } = await supabase.from("cautelas")
         .update({ status: "finalizada" })
-        .eq("id", cautelaId);
+        .eq("id", cautelaId!);
       if (statusErr) throw statusErr;
 
       // 4b. Atualizar campos extras da descautela — silencioso se colunas não existirem
@@ -142,7 +142,7 @@ export function DescautelaModal({ cautelaId, onClose }: Props) {
           descricao_alteracoes: situacao === "com_alteracoes" ? descAlteracoes : null,
           imagem_alteracao_url: imagemUrl,
           descautelado_por: userId,
-        }).eq("id", cautelaId);
+        } as any).eq("id", cautelaId!);
       } catch {
         // Colunas ainda não existem — execute a migração 20260720000000_add_descautela.sql via Lovable
       }
