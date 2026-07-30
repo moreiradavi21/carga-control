@@ -80,7 +80,10 @@ export function DescautelaModal({ cautelaId, onClose }: Props) {
           .from("descautela-imagens")
           .upload(path, imagemFile, { upsert: true });
         if (!upErr) {
-          imagemUrl = supabase.storage.from("descautela-imagens").getPublicUrl(path).data.publicUrl;
+          const { data: signed } = await supabase.storage
+            .from("descautela-imagens")
+            .createSignedUrl(path, 60 * 60 * 24 * 365);
+          imagemUrl = signed?.signedUrl ?? null;
         }
       }
 
