@@ -252,6 +252,7 @@ export type Database = {
           created_by: string | null
           data_inicio: string
           data_validade: string
+          descricao_contrato: string | null
           fornecedor: string
           id: string
           tipo: string
@@ -262,6 +263,7 @@ export type Database = {
           created_by?: string | null
           data_inicio: string
           data_validade: string
+          descricao_contrato?: string | null
           fornecedor: string
           id?: string
           tipo: string
@@ -272,6 +274,7 @@ export type Database = {
           created_by?: string | null
           data_inicio?: string
           data_validade?: string
+          descricao_contrato?: string | null
           fornecedor?: string
           id?: string
           tipo?: string
