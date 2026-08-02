@@ -372,6 +372,8 @@ function ContratoCard({
 }) {
   const [expandido, setExpandido] = useState(false);
   const [editando, setEditando] = useState(false);
+  const { role } = useAuth();
+  const readOnly = role !== "comandante";
 
   const dias = diasRestantesContrato(contrato.data_validade);
   const badge = badgeVencimento(dias);
@@ -427,7 +429,7 @@ function ContratoCard({
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${badge.className} hidden sm:inline-flex`}>
             {badge.label}
           </span>
-          <Button
+          {!readOnly && <Button
             variant="ghost"
             size="icon"
             className="h-7 w-7"
@@ -435,8 +437,8 @@ function ContratoCard({
             title="Editar"
           >
             <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <Button
+          </Button>}
+          {!readOnly && <Button
             variant="ghost"
             size="icon"
             className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
@@ -444,7 +446,7 @@ function ContratoCard({
             title="Excluir"
           >
             <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+          </Button>}
           {expandido
             ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
             : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
