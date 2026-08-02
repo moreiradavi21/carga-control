@@ -19,3 +19,11 @@ export const situacaoLabel = (s: string) =>
 
 export const situacaoColor = (s: string) =>
   SITUACOES.find((x) => x.value === s)?.color ?? "bg-slate-500";
+
+export const ROLE_LABEL: Record<string, string> = {
+  comandante: "Cmt Pel",
+  telefonista: "Telefonista",
+  quarta_secao: "4ª Seção",
+};
+
+export const roleLabel = (r?: string | null) => (r ? (ROLE_LABEL[r] ?? r) : "—");

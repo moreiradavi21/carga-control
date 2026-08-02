@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { AlertTriangle, Save, FileText, NotebookPen } from "lucide-react";
+import { useAuth } from "@/lib/sismat/use-auth";
 
 export const Route = createFileRoute("/_authenticated/auditoria")({ component: Auditoria });
 
@@ -28,6 +29,8 @@ const EMPTY_EQUIPS: Equipamento[] = [];
 
 function Auditoria() {
   const queryClient = useQueryClient();
+  const { role } = useAuth();
+  const readOnly = role !== "comandante";
   const [notas, setNotas] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<Record<string, boolean>>({});
 
@@ -141,12 +144,13 @@ function Auditoria() {
                 </div>
                 <Textarea
                   rows={3}
+                  readOnly={readOnly}
                   placeholder="Registre aqui as observações desta sindicância: data de abertura, responsável, providências tomadas, encaminhamentos..."
                   value={notas[equip.id] ?? ""}
                   onChange={(e) => setNotas((n) => ({ ...n, [equip.id]: e.target.value }))}
                   className="text-sm resize-y"
                 />
-                <div className="flex justify-end">
+                {!readOnly && <div className="flex justify-end">
                   <Button
                     size="sm"
                     onClick={() => salvarNota(equip.id)}
@@ -155,7 +159,7 @@ function Auditoria() {
                     <Save className="h-3 w-3 mr-1" />
                     {saving[equip.id] ? "Salvando..." : "Salvar nota"}
                   </Button>
-                </div>
+                </div>}
               </CardContent>
             </Card>
           ))}

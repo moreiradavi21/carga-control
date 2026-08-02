@@ -29,6 +29,10 @@ function Dashboard() {
   // ── Equipamentos (stats + drill-down) ───────────────────────────
   const { data: stats = [] } = useQuery({
     queryKey: ["dash-stats"],
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("equipamentos")
@@ -83,6 +87,10 @@ function Dashboard() {
   // ── Movimentações ────────────────────────────────────────────────
   const { data: mov } = useQuery({
     queryKey: ["dash-mov"],
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000,
     queryFn: async () => {
       const { data } = await supabase
         .from("movimentacoes")

@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/sismat/use-auth";
-import { MASTER_EMAIL } from "@/lib/sismat/constants";
+import { MASTER_EMAIL, roleLabel } from "@/lib/sismat/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -29,10 +29,11 @@ function Usuarios() {
   const queryClient = useQueryClient();
   const nav = useNavigate();
 
-  if (myRole && myRole !== "comandante") {
+  if (myRole && myRole !== "comandante" && myRole !== "quarta_secao") {
     nav({ to: "/dashboard" });
     return null;
   }
+  const readOnly = myRole === "quarta_secao";
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["usuarios"],
@@ -75,7 +76,9 @@ function Usuarios() {
         .maybeSingle();
 
       if (!existingRole) {
-        const role = (user.requested_role === "comandante" ? "comandante" : "telefonista") as "comandante" | "telefonista";
+        const role = (["comandante", "quarta_secao"].includes(user.requested_role)
+          ? user.requested_role
+          : "telefonista") as any;
         const { error: e2 } = await supabase.from("user_roles").insert({ user_id: user.id, role });
         if (e2) throw e2;
       }
@@ -149,11 +152,12 @@ function Usuarios() {
                     <TableCell className="font-medium">{u.full_name}</TableCell>
                     <TableCell className="text-sm">{u.posto_graduacao ?? "—"}</TableCell>
                     <TableCell>
-                      <Badge variant={u.requested_role === "comandante" ? "default" : "secondary"} className="capitalize">
-                        {u.requested_role === "comandante" ? "Cmt Pel" : "Telefonista"}
+                      <Badge variant={u.requested_role === "comandante" ? "default" : "secondary"}>
+                        {roleLabel(u.requested_role)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
+                      {readOnly ? <span className="text-xs text-muted-foreground">Somente leitura</span> : (
                       <div className="flex justify-end gap-2">
                         <Button
                           size="sm"
@@ -174,6 +178,7 @@ function Usuarios() {
                           Rejeitar
                         </Button>
                       </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -214,11 +219,12 @@ function Usuarios() {
                   <TableCell className="font-medium">{u.full_name}</TableCell>
                   <TableCell className="text-sm">{u.posto_graduacao ?? "—"}</TableCell>
                   <TableCell>
-                    <Badge variant={u.role === "comandante" ? "default" : "secondary"} className="capitalize">
-                      {u.role === "comandante" ? "Cmt Pel" : "Telefonista"}
+                    <Badge variant={u.role === "comandante" ? "default" : "secondary"}>
+                      {roleLabel(u.role)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
+                    {readOnly ? <span className="text-xs text-muted-foreground">Somente leitura</span> : (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button size="sm" variant="destructive">
@@ -244,6 +250,7 @@ function Usuarios() {
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

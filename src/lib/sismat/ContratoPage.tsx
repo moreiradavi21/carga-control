@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/sismat/use-auth";
 import { differenceInDays, format, parseISO } from "date-fns";
 import {
   Calendar, Upload, CheckCircle2, Clock, AlertTriangle,
@@ -151,6 +152,8 @@ function FormContrato({
 // ─── Tracker de pagamentos anuais de um contrato ────────────────────────────
 function PagamentosAnuais({ contrato }: { contrato: Contrato }) {
   const qc = useQueryClient();
+  const { role } = useAuth();
+  const readOnly = role !== "comandante";
   const [uploading, setUploading] = useState<number | null>(null);
 
   const startYear = parseISO(contrato.data_inicio).getFullYear();
@@ -319,15 +322,16 @@ function PagamentosAnuais({ contrato }: { contrato: Contrato }) {
                   </td>
                   <td className="py-2">
                     <div className="flex justify-end items-center gap-1.5">
-                      <Button
+                      {!readOnly && <Button
                         variant={isPago ? "outline" : "default"}
                         size="sm"
                         className="h-7 text-xs px-2.5"
                         onClick={() => togglePago(ano)}
                       >
                         {isPago ? "✓ Pago" : "Marcar pago"}
-                      </Button>
-                      <label className={`inline-flex items-center gap-1 h-7 px-2.5 text-xs border rounded-md cursor-pointer transition-colors hover:bg-accent ${uploading === ano ? "opacity-50 cursor-not-allowed" : ""}`}>
+                      </Button>}
+                      {readOnly && <span className="text-xs text-muted-foreground">{isPago ? "✓ Pago" : "—"}</span>}
+                      {!readOnly && <label className={`inline-flex items-center gap-1 h-7 px-2.5 text-xs border rounded-md cursor-pointer transition-colors hover:bg-accent ${uploading === ano ? "opacity-50 cursor-not-allowed" : ""}`}>
                         <input
                           type="file"
                           accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
@@ -341,7 +345,7 @@ function PagamentosAnuais({ contrato }: { contrato: Contrato }) {
                         />
                         <Upload className="h-3 w-3" />
                         {uploading === ano ? "..." : "Arquivo"}
-                      </label>
+                      </label>}
                     </div>
                   </td>
                 </tr>
@@ -368,6 +372,8 @@ function ContratoCard({
 }) {
   const [expandido, setExpandido] = useState(false);
   const [editando, setEditando] = useState(false);
+  const { role } = useAuth();
+  const readOnly = role !== "comandante";
 
   const dias = diasRestantesContrato(contrato.data_validade);
   const badge = badgeVencimento(dias);
@@ -423,7 +429,7 @@ function ContratoCard({
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${badge.className} hidden sm:inline-flex`}>
             {badge.label}
           </span>
-          <Button
+          {!readOnly && <Button
             variant="ghost"
             size="icon"
             className="h-7 w-7"
@@ -431,8 +437,8 @@ function ContratoCard({
             title="Editar"
           >
             <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <Button
+          </Button>}
+          {!readOnly && <Button
             variant="ghost"
             size="icon"
             className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
@@ -440,7 +446,7 @@ function ContratoCard({
             title="Excluir"
           >
             <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+          </Button>}
           {expandido
             ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
             : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
@@ -467,6 +473,8 @@ function ContratoCard({
 // ─── Página principal ────────────────────────────────────────────────────────
 export function ContratoPage({ tipo, label }: { tipo: string; label: string }) {
   const qc = useQueryClient();
+  const { role } = useAuth();
+  const readOnly = role !== "comandante";
   const [showForm, setShowForm] = useState(false);
 
   const { data: contratos = [], isLoading } = useQuery({
@@ -499,10 +507,10 @@ export function ContratoPage({ tipo, label }: { tipo: string; label: string }) {
             {contratos.length} contrato(s) cadastrado(s)
           </p>
         </div>
-        <Button onClick={() => setShowForm((v) => !v)}>
+        {!readOnly && <Button onClick={() => setShowForm((v) => !v)}>
           {showForm ? <X className="h-4 w-4 mr-1" /> : <Plus className="h-4 w-4 mr-1" />}
           {showForm ? "Cancelar" : "Novo contrato"}
-        </Button>
+        </Button>}
       </div>
 
       {/* Formulário de novo contrato */}

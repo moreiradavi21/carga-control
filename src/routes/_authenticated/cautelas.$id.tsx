@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, AlertTriangle, CheckCircle2, ImageIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { gerarPdfCautela } from "@/lib/sismat/pdf";
@@ -34,7 +34,7 @@ function CautelaDetalhe() {
           <h2 className="text-2xl font-bold">Cautela {d.numero}</h2>
           <p className="text-sm text-muted-foreground">Emitida em {format(new Date(d.data_saida), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
         </div>
-        <Button onClick={() => gerarPdfCautela(d)}><Download className="h-4 w-4" /> Baixar PDF</Button>
+        <Button onClick={() => { void gerarPdfCautela(d); }}><Download className="h-4 w-4" /> Baixar PDF</Button>
       </div>
 
       <Card>
@@ -73,6 +73,35 @@ function CautelaDetalhe() {
         <Card>
           <CardHeader><CardTitle className="text-base">Assinatura do militar</CardTitle></CardHeader>
           <CardContent><img src={d.assinatura_recebimento} alt="Assinatura" className="max-h-32 border rounded bg-white" /></CardContent>
+        </Card>
+      )}
+
+      {(d.data_descautela || d.status === "finalizada") && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Devolução (descautela)</CardTitle></CardHeader>
+          <CardContent className="grid md:grid-cols-2 gap-3 text-sm">
+            <div><span className="text-muted-foreground">Data:</span> {d.data_descautela ? format(new Date(d.data_descautela), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : "—"}</div>
+            <div><span className="text-muted-foreground">Recebido por:</span> {d.quem_descautelou ?? "—"}</div>
+            <div className="md:col-span-2 flex items-center gap-1.5">
+              {d.situacao_devolucao === "com_alteracoes"
+                ? <><AlertTriangle className="h-4 w-4 text-amber-600" /> <span className="font-medium text-amber-700">Com alterações</span></>
+                : <><CheckCircle2 className="h-4 w-4 text-emerald-600" /> <span className="font-medium text-emerald-700">Sem alterações</span></>}
+            </div>
+            {d.situacao_devolucao === "com_alteracoes" && (
+              <div className="md:col-span-2">
+                <p className="text-muted-foreground">Tipo/descrição da alteração:</p>
+                <p>{d.descricao_alteracoes ?? "—"}</p>
+              </div>
+            )}
+            {d.imagem_alteracao_url && (
+              <div className="md:col-span-2 space-y-2">
+                <a href={d.imagem_alteracao_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-primary underline text-sm">
+                  <ImageIcon className="h-4 w-4" /> Ver foto da avaria
+                </a>
+                <img src={d.imagem_alteracao_url} alt="Foto da avaria registrada na descautela" className="max-h-64 rounded border" />
+              </div>
+            )}
+          </CardContent>
         </Card>
       )}
     </div>

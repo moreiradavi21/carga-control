@@ -156,6 +156,8 @@ export function DescautelaModal({ cautelaId, onClose }: Props) {
       qc.invalidateQueries({ queryKey: ["equips-disp"] });
       qc.invalidateQueries({ queryKey: ["dash-stats"] });
       qc.invalidateQueries({ queryKey: ["dash-mov"] });
+      qc.invalidateQueries({ queryKey: ["cautela"] });
+      qc.invalidateQueries({ queryKey: ["dash-pef"] });
       qc.invalidateQueries({ queryKey: ["dash-cautelas-ativas"] });
       qc.invalidateQueries({ queryKey: ["dash-cautelas-servico"] });
 

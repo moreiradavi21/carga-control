@@ -532,9 +532,10 @@ export type Database = {
         Returns: boolean
       }
       is_comandante: { Args: { _user_id: string }; Returns: boolean }
+      is_quarta_secao: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "comandante" | "telefonista"
+      app_role: "comandante" | "telefonista" | "quarta_secao"
       situacao_equipamento:
         | "disponivel"
         | "em_cautela"
@@ -672,7 +673,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["comandante", "telefonista"],
+      app_role: ["comandante", "telefonista", "quarta_secao"],
       situacao_equipamento: [
         "disponivel",
         "em_cautela",

@@ -125,7 +125,11 @@ function AuthLayout() {
     );
   }
 
-  const items = role === "comandante" ? [...navBase, ...navAdmin] : navBase;
+  const isAdminView = role === "comandante" || role === "quarta_secao";
+  const items = isAdminView
+    ? [...navBase, ...navAdmin.filter((n) => !(role === "quarta_secao" && n.to === "/importar"))]
+    : navBase;
+  const roleLabel = role === "comandante" ? "Cmt Pel" : role === "quarta_secao" ? "4ª Seção (somente leitura)" : "Telefonista";
 
   return (
     <SidebarProvider>
@@ -162,7 +166,7 @@ function AuthLayout() {
             </SidebarGroup>
 
             {/* ── Contratos (somente comandante) ── */}
-            {role === "comandante" && (
+            {isAdminView && (
               <SidebarGroup>
                 <SidebarGroupLabel>Contratos</SidebarGroupLabel>
                 <SidebarGroupContent>
@@ -186,7 +190,7 @@ function AuthLayout() {
           <SidebarFooter className="border-t border-sidebar-border">
             <div className="px-2 py-2 text-xs text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
               <div className="font-medium text-sidebar-foreground truncate">{fullName}</div>
-              <div className="capitalize">{role}</div>
+              <div>{roleLabel}</div>
             </div>
             <Button
               variant="ghost"
