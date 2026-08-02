@@ -499,10 +499,10 @@ export function ContratoPage({ tipo, label }: { tipo: string; label: string }) {
             {contratos.length} contrato(s) cadastrado(s)
           </p>
         </div>
-        <Button onClick={() => setShowForm((v) => !v)}>
+        {!readOnlyUser() && <Button onClick={() => setShowForm((v) => !v)}>
           {showForm ? <X className="h-4 w-4 mr-1" /> : <Plus className="h-4 w-4 mr-1" />}
           {showForm ? "Cancelar" : "Novo contrato"}
-        </Button>
+        </Button>}
       </div>
 
       {/* Formulário de novo contrato */}
