@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { MASTER_EMAIL } from "./constants";
 
-export type Role = "comandante" | "telefonista";
+export type Role = "comandante" | "telefonista" | "quarta_secao";
 export type Status = "pendente" | "aprovado" | "rejeitado";
 
 export interface AuthState {
@@ -49,7 +49,12 @@ export function useAuth(): AuthState {
         supabase.from("user_roles").select("role").eq("user_id", user.id),
         supabase.from("profiles").select("full_name, status, requested_role").eq("id", user.id).maybeSingle(),
       ]);
-      const role: Role = rolesRes.data?.some((r) => r.role === "comandante") ? "comandante" : "telefonista";
+      const roles = (rolesRes.data ?? []).map((r: any) => String(r.role));
+      const role: Role = roles.includes("comandante")
+        ? "comandante"
+        : roles.includes("quarta_secao")
+          ? "quarta_secao"
+          : "telefonista";
       // Se a coluna "status" ainda não existe no banco (migration pendente), assume aprovado
       const status = ((profileRes.data as any)?.status ?? "aprovado") as Status;
       if (mounted) setState({ user, role, fullName: profileRes.data?.full_name ?? user.email ?? null, status, loading: false });

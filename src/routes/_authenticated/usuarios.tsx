@@ -29,10 +29,11 @@ function Usuarios() {
   const queryClient = useQueryClient();
   const nav = useNavigate();
 
-  if (myRole && myRole !== "comandante") {
+  if (myRole && myRole !== "comandante" && myRole !== "quarta_secao") {
     nav({ to: "/dashboard" });
     return null;
   }
+  const readOnly = myRole === "quarta_secao";
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["usuarios"],
@@ -75,7 +76,9 @@ function Usuarios() {
         .maybeSingle();
 
       if (!existingRole) {
-        const role = (user.requested_role === "comandante" ? "comandante" : "telefonista") as "comandante" | "telefonista";
+        const role = (["comandante", "quarta_secao"].includes(user.requested_role)
+          ? user.requested_role
+          : "telefonista") as any;
         const { error: e2 } = await supabase.from("user_roles").insert({ user_id: user.id, role });
         if (e2) throw e2;
       }
