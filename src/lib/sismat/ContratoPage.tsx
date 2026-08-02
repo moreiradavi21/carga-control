@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/sismat/use-auth";
 import { differenceInDays, format, parseISO } from "date-fns";
 import {
   Calendar, Upload, CheckCircle2, Clock, AlertTriangle,
@@ -344,7 +345,7 @@ function PagamentosAnuais({ contrato }: { contrato: Contrato }) {
                         />
                         <Upload className="h-3 w-3" />
                         {uploading === ano ? "..." : "Arquivo"}
-                      </label>
+                      </label>}
                     </div>
                   </td>
                 </tr>
