@@ -18,8 +18,11 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/equipamentos")({ component: EquipamentosPage });
 
+const SITUACOES_TELEFONISTA = ["disponivel", "em_cautela", "cautela_servico"];
+
 function EquipamentosPage() {
   const { role } = useAuth();
+  const isTelefonista = role === "telefonista";
   const qc = useQueryClient();
   const [q, setQ] = useState("");
   const [sit, setSit] = useState<string>("all");
@@ -47,16 +50,21 @@ function EquipamentosPage() {
     },
   });
 
+  const situacoesVisiveis = isTelefonista
+    ? SITUACOES.filter((s) => SITUACOES_TELEFONISTA.includes(s.value))
+    : SITUACOES;
+
   const filtered = useMemo(() => {
     const term = q.toLowerCase();
     return equips.filter((e: any) => {
+      if (isTelefonista && !SITUACOES_TELEFONISTA.includes(e.situacao)) return false;
       if (sit !== "all" && e.situacao !== sit) return false;
       if (cat !== "all" && e.categoria_id !== cat) return false;
       if (!term) return true;
       return [e.patrimonio, e.numero_serie, e.descricao, e.marca, e.modelo, e.localizacao]
         .some((v) => v?.toLowerCase().includes(term));
     });
-  }, [equips, q, sit, cat]);
+  }, [equips, q, sit, cat, isTelefonista]);
 
   async function del(id: string) {
     if (!confirm("Excluir este equipamento? Esta ação não pode ser desfeita.")) return;
@@ -89,7 +97,7 @@ function EquipamentosPage() {
               <SelectTrigger><SelectValue placeholder="Situação" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as situações</SelectItem>
-                {SITUACOES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                {situacoesVisiveis.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={cat} onValueChange={setCat}>
