@@ -126,7 +126,9 @@ function AuthLayout() {
   }
 
   const isAdminView = role === "comandante" || role === "quarta_secao";
-  const items = isAdminView ? [...navBase, ...navAdmin] : navBase;
+  const items = isAdminView
+    ? [...navBase, ...navAdmin.filter((n) => !(role === "quarta_secao" && n.to === "/importar"))]
+    : navBase;
   const roleLabel = role === "comandante" ? "Cmt Pel" : role === "quarta_secao" ? "4ª Seção (somente leitura)" : "Telefonista";
 
   return (
