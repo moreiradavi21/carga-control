@@ -29,7 +29,7 @@ const loginSchema = z.object({
 const signupSchema = loginSchema.extend({
   full_name: z.string().min(3, "Nome completo obrigatório"),
   posto_graduacao: z.string().min(1, "Informe o posto/graduação"),
-  role: z.enum(["comandante", "telefonista"]),
+  role: z.enum(["comandante", "telefonista", "quarta_secao"]),
 });
 
 function AuthPage() {
@@ -159,6 +159,7 @@ function AuthPage() {
                     >
                       <option value="telefonista">Telefonista</option>
                       <option value="comandante">Cmt Pel</option>
+                      <option value="quarta_secao">4ª Seção (somente leitura)</option>
                     </select>
                     {signupForm.formState.errors.role && <p className="text-xs text-destructive">{signupForm.formState.errors.role.message}</p>}
                   </div>
