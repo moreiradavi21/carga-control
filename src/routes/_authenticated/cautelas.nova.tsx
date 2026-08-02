@@ -166,6 +166,7 @@ function NovaCautela() {
       qc.invalidateQueries({ queryKey: ["equips-disp"] });
       qc.invalidateQueries({ queryKey: ["cautelas"] });
       qc.invalidateQueries({ queryKey: ["dash-stats"] });
+      qc.invalidateQueries({ queryKey: ["dash-mov"] });
       qc.invalidateQueries({ queryKey: ["dash-cautelas-ativas"] });
       qc.invalidateQueries({ queryKey: ["dash-cautelas-servico"] });
 
