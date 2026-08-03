@@ -50,6 +50,7 @@ function NovaCautela() {
   const [postoRet, setPostoRet] = useState("");
   const [militarRet, setMilitarRet] = useState("");
   const [companhiaId, setCompanhiaId] = useState<string>("");
+  const [outraCompanhia, setOutraCompanhia] = useState("");
   const [finalidade, setFinalidade] = useState<string>("Missão operacional");
   const [dataDev, setDataDev] = useState<string>("");
   const [observacoes, setObservacoes] = useState<string>("");
@@ -93,6 +94,8 @@ function NovaCautela() {
     if (!militarResp.trim()) return toast.error("Informe o militar responsável");
     if (!militarRet.trim()) return toast.error("Informe o militar da retirada");
     if (!companhiaId) return toast.error("Selecione a companhia");
+    if (companhiaId === "__outros__" && !outraCompanhia.trim())
+      return toast.error("Informe o nome da companhia/unidade");
     if (selectedIds.length === 0) return toast.error("Selecione ao menos um equipamento");
 
     setSaving(true);
@@ -100,13 +103,39 @@ function NovaCautela() {
       const { data: user } = await supabase.auth.getUser();
       const { data: numeroData } = await supabase.rpc("gerar_numero_cautela");
 
+      // Companhia "Outros": reaproveita ou cria o registro com o nome digitado
+      let companhiaFinalId = companhiaId;
+      if (companhiaId === "__outros__") {
+        const nome = outraCompanhia.trim();
+        const { data: existente } = await supabase
+          .from("companhias")
+          .select("id")
+          .ilike("nome", nome)
+          .maybeSingle();
+        if (existente?.id) {
+          companhiaFinalId = existente.id;
+        } else {
+          const { data: nova, error: cErr } = await supabase
+            .from("companhias")
+            .insert({ nome })
+            .select("id")
+            .single();
+          if (cErr || !nova)
+            throw new Error(
+              "Não foi possível cadastrar a companhia informada. Solicite ao Cmt Pel o cadastro dessa unidade.",
+            );
+          companhiaFinalId = nova.id;
+          qc.invalidateQueries({ queryKey: ["companhias"] });
+        }
+      }
+
       const basePayload: any = {
         numero: numeroData ?? `${new Date().getFullYear()}-${Date.now()}`,
         militar_responsavel: militarResp,
         posto_responsavel: postoResp || null,
         militar_retirada: militarRet,
         posto_retirada: postoRet || null,
-        companhia_id: companhiaId,
+        companhia_id: companhiaFinalId,
         finalidade: finalidade || null,
         previsao_devolucao: dataDev || null,
         observacoes: observacoes || null,
@@ -251,8 +280,17 @@ function NovaCautela() {
                 {companhias.map((c: any) => (
                   <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                 ))}
+                <SelectItem value="__outros__">Outros</SelectItem>
               </SelectContent>
             </Select>
+            {companhiaId === "__outros__" && (
+              <Input
+                className="mt-2"
+                value={outraCompanhia}
+                onChange={(e) => setOutraCompanhia(e.target.value)}
+                placeholder="Digite a companhia/unidade"
+              />
+            )}
           </div>
           <div className="space-y-1">
             <Label>Data prevista de devolução</Label>
