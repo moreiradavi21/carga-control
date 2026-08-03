@@ -201,15 +201,12 @@ function PagamentosAnuais({ contrato }: { contrato: Contrato }) {
     setUploading(ano);
     try {
       const path = `${contrato.tipo}/${contrato.id}/${ano}/${file.name}`;
-      let arquivo_url: string | null = null;
       const { error: upErr } = await supabase.storage
         .from("contratos-pagamentos")
-        .upload(path, file, { upsert: true });
-      if (!upErr) {
-        arquivo_url = supabase.storage.from("contratos-pagamentos").getPublicUrl(path).data.publicUrl;
-      }
+        .upload(path, file, { upsert: true, contentType: file.type || undefined });
+      if (upErr) throw upErr;
       const pag = pagDoAno(ano);
-      const payload = { arquivo_nome: file.name, arquivo_url, pago: true };
+      const payload = { arquivo_nome: file.name, arquivo_url: path, pago: true };
       if (pag) {
         await supabase.from("pagamentos_contrato").update(payload).eq("id", pag.id);
       } else {
@@ -217,10 +214,7 @@ function PagamentosAnuais({ contrato }: { contrato: Contrato }) {
           contrato_id: contrato.id, ano, mes: MES_ANUAL, ...payload,
         });
       }
-      toast.success(upErr
-        ? `Pagamento de ${ano} registrado (arquivo não salvo na nuvem).`
-        : `Arquivo "${file.name}" enviado para ${ano}.`
-      );
+      toast.success(`Arquivo "${file.name}" enviado para ${ano}.`);
       qc.invalidateQueries({ queryKey: ["pagamentos-anuais", contrato.id] });
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao enviar arquivo.");
@@ -229,8 +223,29 @@ function PagamentosAnuais({ contrato }: { contrato: Contrato }) {
     }
   }
 
+  async function abrirArquivo(pag: Pagamento, download = false) {
+    if (!pag.arquivo_url) return;
+    try {
+      // Compatibilidade: registros antigos podem ter URL pública completa
+      if (pag.arquivo_url.startsWith("http")) {
+        window.open(pag.arquivo_url, "_blank", "noopener");
+        return;
+      }
+      const { data, error } = await supabase.storage
+        .from("contratos-pagamentos")
+        .createSignedUrl(pag.arquivo_url, 60 * 60, download ? { download: pag.arquivo_nome ?? true } : undefined);
+      if (error || !data?.signedUrl) throw error ?? new Error("Não foi possível gerar o link.");
+      window.open(data.signedUrl, "_blank", "noopener");
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao abrir o arquivo.");
+    }
+  }
+
   async function removerArquivo(pag: Pagamento) {
     try {
+      if (pag.arquivo_url && !pag.arquivo_url.startsWith("http")) {
+        await supabase.storage.from("contratos-pagamentos").remove([pag.arquivo_url]);
+      }
       await supabase.from("pagamentos_contrato").update({
         arquivo_nome: null,
         arquivo_url: null,
@@ -301,15 +316,24 @@ function PagamentosAnuais({ contrato }: { contrato: Contrato }) {
                           </button>
                         </div>
                         {pag.arquivo_url ? (
-                          <a
-                            href={pag.arquivo_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
-                          >
-                            <ExternalLink className="h-3 w-3" />
-                            Visualizar arquivo
-                          </a>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => abrirArquivo(pag)}
+                              className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              Visualizar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => abrirArquivo(pag, true)}
+                              className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                            >
+                              <Upload className="h-3 w-3 rotate-180" />
+                              Baixar
+                            </button>
+                          </div>
                         ) : (
                           <span className="text-[11px] text-muted-foreground italic">
                             Arquivo salvo localmente (sem URL)
