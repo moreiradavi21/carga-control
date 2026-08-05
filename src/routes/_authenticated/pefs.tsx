@@ -112,6 +112,33 @@ function PefsPage() {
 
   const doUnidade = (u: string) => itens.filter((i) => i.unidade === u);
   const lista = aberta ? doUnidade(aberta) : [];
+  const permanentes = lista.filter((i) => (i.tipo_material ?? "permanente") !== "consumo");
+  const consumo = lista.filter((i) => (i.tipo_material ?? "permanente") === "consumo");
+
+  const linhasPlanilha = (arr: Item[]) =>
+    arr.map((i) => ({
+      Unidade: unidadeLabel(i.unidade),
+      Tipo: (i.tipo_material ?? "permanente") === "consumo" ? "Consumo" : "Permanente",
+      Descricao: i.descricao,
+      Patrimonio: i.patrimonio ?? "",
+      "Numero de serie": i.numero_serie ?? "",
+      Marca: i.marca ?? "",
+      Modelo: i.modelo ?? "",
+      Localizacao: i.localizacao ?? "",
+      Situacao: isDisponivel(i.situacao) ? "Disponível" : (i.situacao || "Indisponível"),
+      Observacoes: i.observacoes ?? "",
+    }));
+
+  function baixarPlanilha(arr: Item[], nome: string) {
+    if (arr.length === 0) { toast.error("Nenhum item para exportar."); return; }
+    const wb = XLSX.utils.book_new();
+    const perm = arr.filter((i) => (i.tipo_material ?? "permanente") !== "consumo");
+    const cons = arr.filter((i) => (i.tipo_material ?? "permanente") === "consumo");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(linhasPlanilha(arr)), "Geral");
+    if (perm.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(linhasPlanilha(perm)), "Permanente");
+    if (cons.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(linhasPlanilha(cons)), "Consumo");
+    XLSX.writeFile(wb, `${nome}-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }
 
   function novo(unidade: string) {
     setForm({ ...emptyForm, unidade });
