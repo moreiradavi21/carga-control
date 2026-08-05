@@ -311,50 +311,26 @@ function PefsPage() {
               <span className="text-sm text-muted-foreground font-normal">({lista.length})</span>
             </DialogTitle>
           </DialogHeader>
-          {isAdmin && (
-            <div className="flex gap-2">
-              <Button size="sm" onClick={() => novo(aberta!)}><Plus className="h-4 w-4 mr-1" /> Adicionar</Button>
-              <Button size="sm" variant="outline" onClick={() => { setImportUnidade(aberta!); setImportOpen(true); }}>
-                <FileUp className="h-4 w-4 mr-1" /> Importar planilha
-              </Button>
-            </div>
-          )}
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={() => baixarPlanilha(lista, `material-${aberta ?? ""}`)}>
+              <Download className="h-4 w-4 mr-1" /> Baixar planilha
+            </Button>
+            {isAdmin && (
+              <>
+                <Button size="sm" onClick={() => novo(aberta!)}><Plus className="h-4 w-4 mr-1" /> Adicionar</Button>
+                <Button size="sm" variant="outline" onClick={() => { setImportUnidade(aberta!); setImportOpen(true); }}>
+                  <FileUp className="h-4 w-4 mr-1" /> Importar planilha
+                </Button>
+              </>
+            )}
+          </div>
           {lista.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4">Nenhum material cadastrado nesta unidade.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Patrimônio</TableHead>
-                  <TableHead>Nº Série</TableHead>
-                  <TableHead>Marca/Modelo</TableHead>
-                  <TableHead>Localização</TableHead>
-                  <TableHead>Situação</TableHead>
-                  {isAdmin && <TableHead className="w-24">Ações</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {lista.map((i) => (
-                  <TableRow key={i.id}>
-                    <TableCell className="font-medium">{i.descricao}</TableCell>
-                    <TableCell className="font-mono text-xs">{i.patrimonio ?? "—"}</TableCell>
-                    <TableCell className="font-mono text-xs">{i.numero_serie ?? "—"}</TableCell>
-                    <TableCell className="text-sm">{[i.marca, i.modelo].filter(Boolean).join(" / ") || "—"}</TableCell>
-                    <TableCell className="text-sm">{i.localizacao ?? "—"}</TableCell>
-                    <TableCell><Badge variant="outline" className="text-xs">{i.situacao ?? "—"}</Badge></TableCell>
-                    {isAdmin && (
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button size="icon" variant="ghost" onClick={() => editar(i)}><Pencil className="h-4 w-4" /></Button>
-                          <Button size="icon" variant="ghost" onClick={() => excluir(i.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                        </div>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="space-y-6">
+              <Secao titulo="Material permanente" itens={permanentes} isAdmin={isAdmin} onEditar={editar} onExcluir={excluir} />
+              <Secao titulo="Material de consumo" itens={consumo} isAdmin={isAdmin} onEditar={editar} onExcluir={excluir} />
+            </div>
           )}
         </DialogContent>
       </Dialog>
