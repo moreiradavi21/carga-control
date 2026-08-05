@@ -73,13 +73,9 @@ function Dashboard() {
         const { data } = await supabase
           .from("contratos")
           .select("tipo, fornecedor, data_validade")
-          .order("data_validade", { ascending: false });
+          .order("data_validade", { ascending: true });
         if (!data) return [];
-        const porTipo: Record<string, { tipo: string; fornecedor: string; data_validade: string }> = {};
-        for (const c of data) {
-          if (!porTipo[c.tipo]) porTipo[c.tipo] = c;
-        }
-        return Object.values(porTipo) as { tipo: string; fornecedor: string; data_validade: string }[];
+        return data as { tipo: string; fornecedor: string; data_validade: string }[];
       } catch { return []; }
     },
   });
@@ -220,10 +216,10 @@ function Dashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
             {CONTRATOS_CONFIG.map(({ tipo, label, icon: Icon, to }) => {
-              const c = contratos.find((x) => x.tipo === tipo);
-              if (!c) {
+              const lista = contratos.filter((x) => x.tipo === tipo);
+              if (lista.length === 0) {
                 return (
                   <Link key={tipo} to={to}>
                     <div className="border rounded-lg p-3 text-center space-y-1 hover:bg-accent transition-colors cursor-pointer">
@@ -234,21 +230,30 @@ function Dashboard() {
                   </Link>
                 );
               }
-              const dias = differenceInDays(parseISO(c.data_validade), new Date());
-              const cor = dias < 0 ? "border-red-400 bg-red-50" : dias <= 30 ? "border-red-300 bg-red-50" : dias <= 90 ? "border-amber-300 bg-amber-50" : "border-emerald-300 bg-emerald-50";
-              const textCor = dias < 0 || dias <= 30 ? "text-red-700" : dias <= 90 ? "text-amber-700" : "text-emerald-700";
               return (
-                <Link key={tipo} to={to}>
-                  <div className={`border rounded-lg p-3 text-center space-y-1 hover:opacity-80 transition-opacity cursor-pointer ${cor}`}>
-                    <Icon className={`h-5 w-5 mx-auto ${textCor}`} />
-                    <p className="text-xs font-semibold">{label}</p>
-                    <p className="text-[10px] text-muted-foreground truncate" title={c.fornecedor}>{c.fornecedor}</p>
-                    <p className={`text-[11px] font-bold ${textCor}`}>
-                      {dias < 0 ? `Vencido há ${Math.abs(dias)}d` : `${dias} dia(s)`}
-                    </p>
-                    <p className="text-[9px] text-muted-foreground">{format(parseISO(c.data_validade), "dd/MM/yyyy")}</p>
+                <div key={tipo} className="space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold">
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    {label}
+                    <Badge variant="outline" className="ml-auto text-[10px]">{lista.length}</Badge>
                   </div>
-                </Link>
+                  {lista.map((c, i) => {
+                    const dias = differenceInDays(parseISO(c.data_validade), new Date());
+                    const cor = dias < 0 ? "border-red-400 bg-red-50" : dias <= 30 ? "border-red-300 bg-red-50" : dias <= 90 ? "border-amber-300 bg-amber-50" : "border-emerald-300 bg-emerald-50";
+                    const textCor = dias < 0 || dias <= 30 ? "text-red-700" : dias <= 90 ? "text-amber-700" : "text-emerald-700";
+                    return (
+                      <Link key={`${tipo}-${i}`} to={to}>
+                        <div className={`border rounded-lg p-2.5 text-center space-y-0.5 hover:opacity-80 transition-opacity cursor-pointer ${cor}`}>
+                          <p className="text-[11px] font-medium truncate" title={c.fornecedor}>{c.fornecedor}</p>
+                          <p className={`text-[11px] font-bold ${textCor}`}>
+                            {dias < 0 ? `Vencido há ${Math.abs(dias)}d` : `${dias} dia(s)`}
+                          </p>
+                          <p className="text-[9px] text-muted-foreground">{format(parseISO(c.data_validade), "dd/MM/yyyy")}</p>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
               );
             })}
           </div>
