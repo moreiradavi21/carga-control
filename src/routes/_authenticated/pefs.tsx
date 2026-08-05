@@ -473,7 +473,7 @@ function PefsInner() {
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Importar planilha de material</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Arquivos CSV, XLSX ou XLS. Colunas: descricao (obrigatória), patrimonio, numero_serie, marca, modelo, localizacao, situacao, observacoes.
+            Arquivos CSV, XLSX ou XLS. Colunas: descricao (obrigatória), patrimonio, numero_serie, marca, modelo, localizacao, situacao, tipo_material (permanente/consumo), observacoes.
             Esta importação alimenta apenas os PEFs/DEF e não altera os equipamentos do pelotão.
           </p>
           <div className="space-y-1.5">
