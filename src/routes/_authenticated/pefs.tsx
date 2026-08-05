@@ -124,6 +124,7 @@ function PefsPage() {
       patrimonio: i.patrimonio ?? "", numero_serie: i.numero_serie ?? "",
       marca: i.marca ?? "", modelo: i.modelo ?? "", localizacao: i.localizacao ?? "",
       situacao: i.situacao ?? "disponivel", observacoes: i.observacoes ?? "",
+      tipo_material: i.tipo_material ?? "permanente",
     });
     setFormOpen(true);
   }
@@ -141,6 +142,7 @@ function PefsPage() {
       localizacao: form.localizacao.trim() || null,
       situacao: form.situacao || "disponivel",
       observacoes: form.observacoes.trim() || null,
+      tipo_material: form.tipo_material || "permanente",
     };
     const q = form.id
       ? (supabase as any).from("materiais_pef").update(payload).eq("id", form.id)
@@ -194,6 +196,10 @@ function PefsPage() {
         localizacao: r.localizacao ? String(r.localizacao).trim() : null,
         situacao: r.situacao ? String(r.situacao).trim() : "disponivel",
         observacoes: r.observacoes ? String(r.observacoes).trim() : null,
+        tipo_material:
+          String(r.tipo_material ?? r.tipo ?? "").trim().toLowerCase().startsWith("cons")
+            ? "consumo"
+            : "permanente",
       }))
       .filter((r) => r.descricao);
 
