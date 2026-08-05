@@ -415,7 +415,22 @@ function PefsInner() {
             </div>
             <div className="space-y-1.5">
               <Label>Situação</Label>
-              <Input value={form.situacao} onChange={(e) => setForm({ ...form, situacao: e.target.value })} />
+              <Select value={isDisponivel(form.situacao) ? "disponivel" : "indisponivel"} onValueChange={(v) => setForm({ ...form, situacao: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {SITUACOES_PEF.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Tipo de material</Label>
+              <Select value={form.tipo_material} onValueChange={(v) => setForm({ ...form, tipo_material: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="permanente">Material permanente</SelectItem>
+                  <SelectItem value="consumo">Material de consumo</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label>Descrição *</Label>
