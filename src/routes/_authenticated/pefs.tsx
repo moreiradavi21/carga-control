@@ -250,16 +250,21 @@ function PefsPage() {
             Material dos Pelotões Especiais de Fronteira e do DEF — controle independente dos equipamentos do pelotão
           </p>
         </div>
-        {isAdmin && (
-          <div className="flex gap-2">
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => baixarPlanilha(itens, "materiais-pef-def")}>
+            <Download className="h-4 w-4 mr-2" /> Baixar relatório
+          </Button>
+          {isAdmin && (
+            <>
             <Button variant="outline" onClick={() => setImportOpen(true)}>
               <FileUp className="h-4 w-4 mr-2" /> Importar planilha
             </Button>
             <Button onClick={() => novo(aberta ?? "1_pef")}>
               <Plus className="h-4 w-4 mr-2" /> Novo item
             </Button>
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
