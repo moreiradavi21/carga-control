@@ -353,6 +353,54 @@ export type Database = {
           },
         ]
       }
+      materiais_pef: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          descricao: string
+          id: string
+          localizacao: string | null
+          marca: string | null
+          modelo: string | null
+          numero_serie: string | null
+          observacoes: string | null
+          patrimonio: string | null
+          situacao: string
+          unidade: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          descricao: string
+          id?: string
+          localizacao?: string | null
+          marca?: string | null
+          modelo?: string | null
+          numero_serie?: string | null
+          observacoes?: string | null
+          patrimonio?: string | null
+          situacao?: string
+          unidade: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          descricao?: string
+          id?: string
+          localizacao?: string | null
+          marca?: string | null
+          modelo?: string | null
+          numero_serie?: string | null
+          observacoes?: string | null
+          patrimonio?: string | null
+          situacao?: string
+          unidade?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       movimentacoes: {
         Row: {
           cautela_id: string | null
