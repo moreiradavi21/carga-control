@@ -84,6 +84,70 @@ const norm = (o: Record<string, any>) => {
 };
 
 function PefsPage() {
+  return <PefsInner />;
+}
+
+function Secao({
+  titulo, itens, isAdmin, onEditar, onExcluir,
+}: {
+  titulo: string;
+  itens: Item[];
+  isAdmin: boolean;
+  onEditar: (i: Item) => void;
+  onExcluir: (id: string) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <h4 className="text-sm font-semibold uppercase tracking-wide">{titulo}</h4>
+        <Badge variant="outline" className="text-xs">{itens.length}</Badge>
+      </div>
+      {itens.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nenhum item nesta categoria.</p>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Descrição</TableHead>
+              <TableHead>Patrimônio</TableHead>
+              <TableHead>Nº Série</TableHead>
+              <TableHead>Marca/Modelo</TableHead>
+              <TableHead>Localização</TableHead>
+              <TableHead>Situação</TableHead>
+              {isAdmin && <TableHead className="w-24">Ações</TableHead>}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {itens.map((i) => (
+              <TableRow key={i.id}>
+                <TableCell className="font-medium">{i.descricao}</TableCell>
+                <TableCell className="font-mono text-xs">{i.patrimonio ?? "—"}</TableCell>
+                <TableCell className="font-mono text-xs">{i.numero_serie ?? "—"}</TableCell>
+                <TableCell className="text-sm">{[i.marca, i.modelo].filter(Boolean).join(" / ") || "—"}</TableCell>
+                <TableCell className="text-sm">{i.localizacao ?? "—"}</TableCell>
+                <TableCell>
+                  <Badge variant="outline" className={situacaoBadgeClass(i.situacao)}>
+                    {isDisponivel(i.situacao) ? "Disponível" : (i.situacao || "Indisponível")}
+                  </Badge>
+                </TableCell>
+                {isAdmin && (
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Button size="icon" variant="ghost" onClick={() => onEditar(i)}><Pencil className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" onClick={() => onExcluir(i.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    </div>
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </div>
+  );
+}
+
+function PefsInner() {
   const { role } = useAuth();
   const isAdmin = role === "comandante";
   const qc = useQueryClient();
