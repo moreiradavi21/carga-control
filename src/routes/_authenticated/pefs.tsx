@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Radio, Plus, Pencil, Trash2, FileUp, Package } from "lucide-react";
+import { Radio, Plus, Pencil, Trash2, FileUp, Package, Download } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pefs")({
   component: PefsPage,
@@ -53,12 +53,27 @@ type Item = {
   localizacao: string | null;
   situacao: string | null;
   observacoes: string | null;
+  tipo_material: string | null;
 };
 
 const emptyForm = {
   id: "", unidade: "1_pef", descricao: "", patrimonio: "", numero_serie: "",
   marca: "", modelo: "", localizacao: "", situacao: "disponivel", observacoes: "",
+  tipo_material: "permanente",
 };
+
+const SITUACOES_PEF = [
+  { value: "disponivel", label: "Disponível" },
+  { value: "indisponivel", label: "Indisponível" },
+];
+
+const isDisponivel = (s?: string | null) =>
+  String(s ?? "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === "disponivel";
+
+const situacaoBadgeClass = (s?: string | null) =>
+  isDisponivel(s)
+    ? "text-xs border-emerald-600/40 bg-emerald-600/10 text-emerald-600"
+    : "text-xs border-red-600/40 bg-red-600/10 text-red-600";
 
 const norm = (o: Record<string, any>) => {
   const out: Record<string, any> = {};
