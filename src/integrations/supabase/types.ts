@@ -366,6 +366,7 @@ export type Database = {
           observacoes: string | null
           patrimonio: string | null
           situacao: string
+          tipo_material: string
           unidade: string
           updated_at: string
         }
@@ -381,6 +382,7 @@ export type Database = {
           observacoes?: string | null
           patrimonio?: string | null
           situacao?: string
+          tipo_material?: string
           unidade: string
           updated_at?: string
         }
@@ -396,6 +398,7 @@ export type Database = {
           observacoes?: string | null
           patrimonio?: string | null
           situacao?: string
+          tipo_material?: string
           unidade?: string
           updated_at?: string
         }
