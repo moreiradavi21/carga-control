@@ -147,7 +147,10 @@ function Usuarios() {
               <TableBody>
                 {pendentes.map((u) => (
                   <TableRow key={u.id}>
-                    <TableCell className="font-medium">{u.full_name}</TableCell>
+                    <TableCell className="font-medium">
+                      {u.full_name}
+                      {u.email && <div className="text-xs font-normal text-muted-foreground">{u.email}</div>}
+                    </TableCell>
                     <TableCell className="text-sm">{u.posto_graduacao ?? "—"}</TableCell>
                     <TableCell>
                       <Badge variant={u.requested_role === "comandante" ? "default" : "secondary"}>
