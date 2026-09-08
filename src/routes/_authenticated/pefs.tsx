@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Radio, Plus, Pencil, Trash2, FileUp, Package, Download } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { PEF_UNIDADES, pefUnidadeLabel } from "@/lib/sismat/constants";
-import { diasRestantesContrato, badgeVencimento } from "@/lib/sismat/ContratoPage";
+import { diasRestantesContrato, badgeVencimento, unidadesDoContrato } from "@/lib/sismat/ContratoPage";
 
 export const Route = createFileRoute("/_authenticated/pefs")({
   component: PefsPage,
