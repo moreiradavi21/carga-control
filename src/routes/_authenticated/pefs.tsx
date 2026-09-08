@@ -399,20 +399,20 @@ function PefsInner() {
             <Download className="h-4 w-4 mr-2" /> Baixar relatório
           </Button>
           {isAdmin && (
-            <>
             <Button variant="outline" onClick={() => setImportOpen(true)}>
               <FileUp className="h-4 w-4 mr-2" /> Importar planilha
             </Button>
-            <Button onClick={() => novo(aberta ?? "1_pef")}>
+          )}
+          {podeAdicionar && (
+            <Button onClick={() => novo(aberta ?? minhaUnidade ?? "1_pef")}>
               <Plus className="h-4 w-4 mr-2" /> Novo item
             </Button>
-            </>
           )}
         </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-        {UNIDADES.map((u) => (
+        {unidadesVisiveis.map((u) => (
           <Card
             key={u.value}
             onClick={() => setAberta(u.value)}
