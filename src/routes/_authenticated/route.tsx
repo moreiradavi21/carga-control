@@ -134,7 +134,7 @@ function AuthLayout() {
     );
   }
 
-  const isAdminView = role === "comandante" || role === "quarta_secao";
+  const isAdminView = role === "comandante" || role === "quarta_secao" || role === "adjunto";
   const items = role === "pef"
     ? navBase.filter((n) => n.to === "/pefs")
     : isAdminView
@@ -142,7 +142,9 @@ function AuthLayout() {
       : navBase;
   const roleLabel = role === "comandante"
     ? "Cmt Pel"
-    : role === "quarta_secao"
+    : role === "adjunto"
+      ? "Adjunto Pel"
+      : role === "quarta_secao"
       ? "4ª Seção (somente leitura)"
       : role === "pef"
         ? "PEF / DEF"

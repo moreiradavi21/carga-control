@@ -596,7 +596,12 @@ export type Database = {
       pef_unidade_do: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
-      app_role: "comandante" | "telefonista" | "quarta_secao" | "pef"
+      app_role:
+        | "comandante"
+        | "telefonista"
+        | "quarta_secao"
+        | "pef"
+        | "adjunto"
       situacao_equipamento:
         | "disponivel"
         | "em_cautela"
@@ -734,7 +739,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["comandante", "telefonista", "quarta_secao", "pef"],
+      app_role: ["comandante", "telefonista", "quarta_secao", "pef", "adjunto"],
       situacao_equipamento: [
         "disponivel",
         "em_cautela",

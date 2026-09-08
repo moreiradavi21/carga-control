@@ -35,11 +35,11 @@ function Usuarios() {
   const deleteUserAccountFn = useServerFn(deleteUserAccount);
 
 
-  if (myRole && myRole !== "comandante" && myRole !== "quarta_secao") {
+  if (myRole && myRole !== "comandante" && myRole !== "quarta_secao" && myRole !== "adjunto") {
     nav({ to: "/dashboard" });
     return null;
   }
-  const readOnly = myRole === "quarta_secao";
+  const readOnly = myRole !== "comandante";
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["usuarios"],
@@ -82,7 +82,7 @@ function Usuarios() {
         .maybeSingle();
 
       if (!existingRole) {
-        const role = (["comandante", "quarta_secao", "pef"].includes(user.requested_role)
+        const role = (["comandante", "quarta_secao", "pef", "adjunto"].includes(user.requested_role)
           ? user.requested_role
           : "telefonista") as any;
         const { error: e2 } = await supabase.from("user_roles").insert({ user_id: user.id, role });

@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { MASTER_EMAIL } from "./constants";
 
-export type Role = "comandante" | "telefonista" | "quarta_secao" | "pef";
+export type Role = "comandante" | "telefonista" | "quarta_secao" | "pef" | "adjunto";
 export type Status = "pendente" | "aprovado" | "rejeitado";
 
 export interface AuthState {
@@ -54,8 +54,10 @@ export function useAuth(): AuthState {
       const roles = (rolesRes.data ?? []).map((r: any) => String(r.role));
       const role: Role = roles.includes("comandante")
         ? "comandante"
-        : roles.includes("quarta_secao")
-          ? "quarta_secao"
+        : roles.includes("adjunto")
+          ? "adjunto"
+          : roles.includes("quarta_secao")
+            ? "quarta_secao"
           : roles.includes("pef")
             ? "pef"
             : "telefonista";

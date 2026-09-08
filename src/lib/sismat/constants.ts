@@ -24,6 +24,7 @@ export const ROLE_LABEL: Record<string, string> = {
   comandante: "Cmt Pel",
   telefonista: "Telefonista",
   quarta_secao: "4ª Seção",
+  adjunto: "Adjunto Pel",
   pef: "PEF / DEF",
 };
 

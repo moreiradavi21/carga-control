@@ -146,11 +146,12 @@ function PefsPage() {
 }
 
 function Secao({
-  titulo, itens, isAdmin, onEditar, onExcluir,
+  titulo, itens, isAdmin, podeExcluir = false, onEditar, onExcluir,
 }: {
   titulo: string;
   itens: Item[];
   isAdmin: boolean;
+  podeExcluir?: boolean;
   onEditar: (i: Item) => void;
   onExcluir: (id: string) => void;
 }) {
@@ -192,7 +193,7 @@ function Secao({
                   <TableCell>
                     <div className="flex gap-1">
                       <Button size="icon" variant="ghost" onClick={() => onEditar(i)}><Pencil className="h-4 w-4" /></Button>
-                      <Button size="icon" variant="ghost" onClick={() => onExcluir(i.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      {podeExcluir && <Button size="icon" variant="ghost" onClick={() => onExcluir(i.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
                     </div>
                   </TableCell>
                 )}
@@ -207,7 +208,8 @@ function Secao({
 
 function PefsInner() {
   const { role, pefUnidade } = useAuth();
-  const isAdmin = role === "comandante";
+  const isAdmin = role === "comandante" || role === "adjunto";
+  const podeExcluir = role === "comandante";
   const isPefUser = role === "pef";
   const minhaUnidade = isPefUser ? (pefUnidade ?? null) : null;
   const unidadesVisiveis = isPefUser
@@ -472,8 +474,8 @@ function PefsInner() {
             <p className="text-sm text-muted-foreground py-4">Nenhum material cadastrado nesta unidade.</p>
           ) : (
             <div className="space-y-6">
-              <Secao titulo="Material permanente" itens={permanentes} isAdmin={isAdmin} onEditar={editar} onExcluir={excluir} />
-              <Secao titulo="Material de consumo" itens={consumo} isAdmin={isAdmin} onEditar={editar} onExcluir={excluir} />
+              <Secao titulo="Material permanente" itens={permanentes} isAdmin={isAdmin} podeExcluir={podeExcluir} onEditar={editar} onExcluir={excluir} />
+              <Secao titulo="Material de consumo" itens={consumo} isAdmin={isAdmin} podeExcluir={podeExcluir} onEditar={editar} onExcluir={excluir} />
             </div>
           )}
           <div className="pt-4 border-t">

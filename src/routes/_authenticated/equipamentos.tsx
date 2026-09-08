@@ -81,7 +81,7 @@ function EquipamentosPage() {
           <h2 className="text-2xl font-bold">Equipamentos</h2>
           <p className="text-sm text-muted-foreground">{filtered.length} de {equips.length} equipamentos</p>
         </div>
-        {role === "comandante" && (
+        {(role === "comandante" || role === "adjunto") && (
           <Button onClick={() => setCreating(true)}><Plus className="h-4 w-4" /> Novo equipamento</Button>
         )}
       </div>
@@ -157,10 +157,12 @@ function EquipamentosPage() {
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="icon" onClick={() => setQr(e)}><QrCode className="h-4 w-4" /></Button>
-                      {role === "comandante" && <>
+                      {(role === "comandante" || role === "adjunto") && (
                         <Button variant="ghost" size="icon" onClick={() => setEditing(e)}><Pencil className="h-4 w-4" /></Button>
+                      )}
+                      {role === "comandante" && (
                         <Button variant="ghost" size="icon" onClick={() => del(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                      </>}
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

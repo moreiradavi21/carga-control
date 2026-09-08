@@ -185,7 +185,7 @@ function FormContrato({
 function PagamentosAnuais({ contrato }: { contrato: Contrato }) {
   const qc = useQueryClient();
   const { role } = useAuth();
-  const readOnly = role !== "comandante";
+  const readOnly = role !== "comandante" && role !== "adjunto";
   const [uploading, setUploading] = useState<number | null>(null);
 
   const startYear = parseISO(contrato.data_inicio).getFullYear();
@@ -429,7 +429,7 @@ function ContratoCard({
   const [expandido, setExpandido] = useState(false);
   const [editando, setEditando] = useState(false);
   const { role } = useAuth();
-  const readOnly = role !== "comandante";
+  const readOnly = role !== "comandante" && role !== "adjunto";
 
   const dias = diasRestantesContrato(contrato.data_validade);
   const badge = badgeVencimento(dias);
@@ -499,7 +499,7 @@ function ContratoCard({
           >
             <Pencil className="h-3.5 w-3.5" />
           </Button>}
-          {!readOnly && <Button
+          {role === "comandante" && <Button
             variant="ghost"
             size="icon"
             className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
@@ -535,7 +535,7 @@ function ContratoCard({
 export function ContratoPage({ tipo, label }: { tipo: string; label: string }) {
   const qc = useQueryClient();
   const { role } = useAuth();
-  const readOnly = role !== "comandante";
+  const readOnly = role !== "comandante" && role !== "adjunto";
   const [showForm, setShowForm] = useState(false);
 
   const { data: contratos = [], isLoading } = useQuery({
