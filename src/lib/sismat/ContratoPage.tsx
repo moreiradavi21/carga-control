@@ -168,17 +168,34 @@ function FormContrato({
           </select>
         </div>
         {form.is_pef === "sim" && (
-          <div className="space-y-1.5">
-            <Label className="text-xs">Qual PEF / DEF</Label>
-            <select
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
-              value={form.pef_unidade}
-              onChange={(e) => setForm((f) => ({ ...f, pef_unidade: e.target.value }))}
-            >
-              {PEF_UNIDADES.map((u) => (
-                <option key={u.value} value={u.value}>{u.label}</option>
-              ))}
-            </select>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label className="text-xs">Quais PEF / DEF (pode marcar vários)</Label>
+            <div className="flex flex-wrap gap-2">
+              {PEF_UNIDADES.map((u) => {
+                const ativo = form.pef_unidades.includes(u.value);
+                return (
+                  <button
+                    type="button"
+                    key={u.value}
+                    onClick={() =>
+                      setForm((f) => ({
+                        ...f,
+                        pef_unidades: ativo
+                          ? f.pef_unidades.filter((x) => x !== u.value)
+                          : [...f.pef_unidades, u.value],
+                      }))
+                    }
+                    className={`text-xs font-semibold px-2.5 py-1 rounded-full border transition-colors ${
+                      ativo
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-transparent text-muted-foreground border-input hover:bg-muted"
+                    }`}
+                  >
+                    {u.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
