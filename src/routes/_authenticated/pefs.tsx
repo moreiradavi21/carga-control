@@ -206,8 +206,14 @@ function Secao({
 }
 
 function PefsInner() {
-  const { role } = useAuth();
+  const { role, pefUnidade } = useAuth();
   const isAdmin = role === "comandante";
+  const isPefUser = role === "pef";
+  const minhaUnidade = isPefUser ? (pefUnidade ?? null) : null;
+  const unidadesVisiveis = isPefUser
+    ? UNIDADES.filter((u) => u.value === minhaUnidade)
+    : UNIDADES;
+  const podeAdicionar = isAdmin || (isPefUser && !!minhaUnidade);
   const qc = useQueryClient();
 
   const [aberta, setAberta] = useState<string | null>(null);
