@@ -15,6 +15,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Radio, Plus, Pencil, Trash2, FileUp, Package, Download } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { PEF_UNIDADES, pefUnidadeLabel } from "@/lib/sismat/constants";
+import { diasRestantesContrato, badgeVencimento } from "@/lib/sismat/ContratoPage";
 
 export const Route = createFileRoute("/_authenticated/pefs")({
   component: PefsPage,
@@ -30,17 +33,72 @@ export const Route = createFileRoute("/_authenticated/pefs")({
   }),
 });
 
-const UNIDADES = [
-  { value: "1_pef", label: "1º PEF" },
-  { value: "2_pef", label: "2º PEF" },
-  { value: "3_pef", label: "3º PEF" },
-  { value: "4_pef", label: "4º PEF" },
-  { value: "5_pef", label: "5º PEF" },
-  { value: "6_pef", label: "6º PEF" },
-  { value: "def",   label: "DEF"    },
-];
+const UNIDADES = [...PEF_UNIDADES];
 
-const unidadeLabel = (v: string) => UNIDADES.find((u) => u.value === v)?.label ?? v;
+const unidadeLabel = (v: string) => pefUnidadeLabel(v);
+
+type ServicoPef = {
+  id: string;
+  tipo: string;
+  fornecedor: string;
+  data_inicio: string;
+  data_validade: string;
+  descricao_contrato: string | null;
+  pef_unidade: string | null;
+};
+
+const TIPO_SERVICO_LABEL: Record<string, string> = {
+  "spot-x": "Spot X",
+  spot_x: "Spot X",
+  satelital: "Satelital",
+  telefonia: "Telefonia",
+  starlink: "Starlink",
+};
+
+function ServicosUnidade({ servicos }: { servicos: ServicoPef[] }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <h4 className="text-sm font-semibold uppercase tracking-wide">Vencimento dos serviços</h4>
+        <Badge variant="outline" className="text-xs">{servicos.length}</Badge>
+      </div>
+      {servicos.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nenhum serviço vinculado a esta unidade.</p>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Serviço</TableHead>
+              <TableHead>Fornecedor</TableHead>
+              <TableHead>Identificação</TableHead>
+              <TableHead>Validade</TableHead>
+              <TableHead>Situação</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {servicos.map((s) => {
+              const dias = diasRestantesContrato(s.data_validade);
+              const badge = badgeVencimento(dias);
+              return (
+                <TableRow key={s.id}>
+                  <TableCell className="font-medium">{TIPO_SERVICO_LABEL[s.tipo] ?? s.tipo}</TableCell>
+                  <TableCell className="text-sm">{s.fornecedor}</TableCell>
+                  <TableCell className="text-sm">{s.descricao_contrato ?? "—"}</TableCell>
+                  <TableCell className="text-sm">{format(parseISO(s.data_validade), "dd/MM/yyyy")}</TableCell>
+                  <TableCell>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${badge.className}`}>
+                      {badge.label}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      )}
+    </div>
+  );
+}
 
 type Item = {
   id: string;
