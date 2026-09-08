@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "sonner";
 import { Check, X, Trash2, Clock, ShieldCheck, ShieldAlert } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { listUserEmails, deleteUserAccount } from "@/lib/admin-users.functions";
+import { listAllAccounts, approveUserAccount, rejectUserAccount, deleteUserAccount } from "@/lib/admin-users.functions";
 
 
 export const Route = createFileRoute("/_authenticated/usuarios")({ component: Usuarios });
@@ -31,7 +31,9 @@ function Usuarios() {
   const { role: myRole, user: myUser } = useAuth();
   const queryClient = useQueryClient();
   const nav = useNavigate();
-  const listUserEmailsFn = useServerFn(listUserEmails);
+  const listAllAccountsFn = useServerFn(listAllAccounts);
+  const approveUserAccountFn = useServerFn(approveUserAccount);
+  const rejectUserAccountFn = useServerFn(rejectUserAccount);
   const deleteUserAccountFn = useServerFn(deleteUserAccount);
 
 
@@ -42,24 +44,30 @@ function Usuarios() {
   const readOnly = myRole !== "comandante";
 
   const { data: users = [], isLoading } = useQuery({
-    queryKey: ["usuarios"],
+    queryKey: ["usuarios", myRole],
+    enabled: !!myRole,
     queryFn: async () => {
-      const [{ data: profiles }, { data: roles }, emails] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, posto_graduacao, status, requested_role, created_at").order("created_at", { ascending: false }),
-        supabase.from("user_roles").select("user_id, role"),
-        listUserEmailsFn().catch(() => [] as { id: string; email: string | null }[]),
-      ]);
+      if (myRole === "comandante") {
+        const all = await listAllAccountsFn();
+        return (all as any[]).filter(
+          (u) => u.email !== MASTER_EMAIL && u.id !== myUser?.id,
+        ) as UserRow[];
+      }
 
-      const authList = emails ?? [];
+      const [{ data: profiles }, { data: roles }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id, full_name, posto_graduacao, status, requested_role, created_at")
+          .order("created_at", { ascending: false }),
+        supabase.from("user_roles").select("user_id, role"),
+      ]);
 
       return (profiles ?? [])
         .map((p: any) => ({
           ...p,
           role: roles?.find((r: any) => r.user_id === p.id)?.role ?? null,
-          email: authList.find((u: any) => u.id === p.id)?.email ?? null,
         }))
-        // Ocultar a conta mestre da listagem (ela gerencia, não precisa aparecer)
-        .filter((u: any) => u.email !== MASTER_EMAIL && u.id !== myUser?.id) as UserRow[];
+        .filter((u: any) => u.id !== myUser?.id) as UserRow[];
     },
   });
 
@@ -69,44 +77,30 @@ function Usuarios() {
 
   const aprovar = useMutation({
     mutationFn: async (user: UserRow) => {
-      const { error: e1 } = await supabase
-        .from("profiles")
-        .update({ status: "aprovado" })
-        .eq("id", user.id);
-      if (e1) throw e1;
-
-      const { data: existingRole } = await supabase
-        .from("user_roles")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!existingRole) {
-        const role = (["comandante", "quarta_secao", "pef", "adjunto"].includes(user.requested_role)
-          ? user.requested_role
-          : "telefonista") as any;
-        const { error: e2 } = await supabase.from("user_roles").insert({ user_id: user.id, role });
-        if (e2) throw e2;
-      }
+      await approveUserAccountFn({
+        data: {
+          userId: user.id,
+          role: user.requested_role,
+          pefUnidade: (user as any).pef_unidade ?? null,
+        },
+      });
     },
     onSuccess: () => {
       toast.success("Usuário aprovado com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["usuarios"] });
     },
-    onError: () => toast.error("Erro ao aprovar usuário."),
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao aprovar usuário."),
   });
 
   const rejeitar = useMutation({
     mutationFn: async (userId: string) => {
-      const { error } = await supabase.from("profiles").update({ status: "rejeitado" }).eq("id", userId);
-      if (error) throw error;
-      await supabase.from("user_roles").delete().eq("user_id", userId);
+      await rejectUserAccountFn({ data: { userId } });
     },
     onSuccess: () => {
       toast.success("Cadastro rejeitado.");
       queryClient.invalidateQueries({ queryKey: ["usuarios"] });
     },
-    onError: () => toast.error("Erro ao rejeitar cadastro."),
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao rejeitar cadastro."),
   });
   const excluir = useMutation({
     mutationFn: async (userId: string) => {
@@ -153,7 +147,10 @@ function Usuarios() {
               <TableBody>
                 {pendentes.map((u) => (
                   <TableRow key={u.id}>
-                    <TableCell className="font-medium">{u.full_name}</TableCell>
+                    <TableCell className="font-medium">
+                      {u.full_name}
+                      {u.email && <div className="text-xs font-normal text-muted-foreground">{u.email}</div>}
+                    </TableCell>
                     <TableCell className="text-sm">{u.posto_graduacao ?? "—"}</TableCell>
                     <TableCell>
                       <Badge variant={u.requested_role === "comandante" ? "default" : "secondary"}>
@@ -220,7 +217,10 @@ function Usuarios() {
               )}
               {ativos.map((u) => (
                 <TableRow key={u.id}>
-                  <TableCell className="font-medium">{u.full_name}</TableCell>
+                  <TableCell className="font-medium">
+                    {u.full_name}
+                    {u.email && <div className="text-xs font-normal text-muted-foreground">{u.email}</div>}
+                  </TableCell>
                   <TableCell className="text-sm">{u.posto_graduacao ?? "—"}</TableCell>
                   <TableCell>
                     <Badge variant={u.role === "comandante" ? "default" : "secondary"}>
