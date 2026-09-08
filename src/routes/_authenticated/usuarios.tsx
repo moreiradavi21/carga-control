@@ -38,14 +38,13 @@ function Usuarios() {
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["usuarios"],
     queryFn: async () => {
-      const [{ data: profiles }, { data: roles }, { data: authUsers }] = await Promise.all([
+      const [{ data: profiles }, { data: roles }, emails] = await Promise.all([
         supabase.from("profiles").select("id, full_name, posto_graduacao, status, requested_role, created_at").order("created_at", { ascending: false }),
         supabase.from("user_roles").select("user_id, role"),
-        // Buscar e-mails via auth (apenas disponível com service role; fallback gracioso)
-        supabase.auth.admin?.listUsers().catch(() => ({ data: { users: [] } })),
+        listUserEmailsFn().catch(() => [] as { id: string; email: string | null }[]),
       ]);
 
-      const authList = (authUsers as any)?.data?.users ?? [];
+      const authList = emails ?? [];
 
       return (profiles ?? [])
         .map((p: any) => ({
@@ -57,6 +56,7 @@ function Usuarios() {
         .filter((u: any) => u.email !== MASTER_EMAIL && u.id !== myUser?.id) as UserRow[];
     },
   });
+
 
   const pendentes = users.filter((u) => u.status === "pendente");
   const ativos = users.filter((u) => u.status === "aprovado");
