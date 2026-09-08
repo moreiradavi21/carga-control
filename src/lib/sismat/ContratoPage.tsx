@@ -78,7 +78,7 @@ function FormContrato({
     data_inicio: inicial?.data_inicio ?? "",
     data_validade: inicial?.data_validade ?? "",
     is_pef: inicial?.is_pef ? "sim" : "nao",
-    pef_unidade: inicial?.pef_unidade ?? "1_pef",
+    pef_unidades: inicial ? unidadesDoContrato(inicial) : ([] as string[]),
   });
   const [saving, setSaving] = useState(false);
 
