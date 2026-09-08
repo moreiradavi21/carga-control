@@ -126,6 +126,6 @@ export const deleteUserAccount = createServerFn({ method: "POST" })
     await supabaseAdmin.from("profiles").delete().eq("id", data.userId);
 
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message || "Não foi possível excluir a conta");
     return { ok: true };
   });
