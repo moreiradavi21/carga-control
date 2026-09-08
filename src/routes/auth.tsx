@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Shield, Radio, Clock } from "lucide-react";
+import { PEF_UNIDADES, pefUnidadeLabel } from "@/lib/sismat/constants";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -166,9 +167,28 @@ function AuthPage() {
                       <option value="telefonista">Telefonista</option>
                       <option value="comandante">Cmt Pel</option>
                       <option value="quarta_secao">4ª Seção (somente leitura)</option>
+                      <option value="pef">PEF</option>
                     </select>
                     {signupForm.formState.errors.role && <p className="text-xs text-destructive">{signupForm.formState.errors.role.message}</p>}
                   </div>
+                  {roleSelecionada === "pef" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="s-pef">Qual PEF / DEF</Label>
+                      <select
+                        id="s-pef"
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                        {...signupForm.register("pef_unidade")}
+                      >
+                        {PEF_UNIDADES.map((u) => (
+                          <option key={u.value} value={u.value}>{u.label}</option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-muted-foreground">
+                        O acesso ficará restrito ao material do {pefUnidadeLabel(signupForm.watch("pef_unidade"))}.
+                      </p>
+                      {signupForm.formState.errors.pef_unidade && <p className="text-xs text-destructive">{signupForm.formState.errors.pef_unidade.message}</p>}
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="s-email">E-mail</Label>
                     <Input id="s-email" type="email" {...signupForm.register("email")} />
