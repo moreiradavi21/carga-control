@@ -65,6 +65,7 @@ function AuthPage() {
           full_name: values.full_name,
           posto_graduacao: values.posto_graduacao,
           role: values.role,
+          pef_unidade: values.role === "pef" ? values.pef_unidade : null,
           // status inicia como 'pendente' — definido na migração SQL
         },
       },
