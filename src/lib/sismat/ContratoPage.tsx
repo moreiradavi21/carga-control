@@ -100,7 +100,8 @@ function FormContrato({
         data_inicio: form.data_inicio,
         data_validade: form.data_validade,
         is_pef: form.is_pef === "sim",
-        pef_unidade: form.is_pef === "sim" ? form.pef_unidade : null,
+        pef_unidade: form.is_pef === "sim" ? (form.pef_unidades[0] ?? null) : null,
+        pef_unidades: form.is_pef === "sim" ? form.pef_unidades : [],
       } as any;
       if (inicial?.id) {
         const { error } = await supabase.from("contratos").update(payload).eq("id", inicial.id);
