@@ -59,8 +59,9 @@ export function useAuth(): AuthState {
           : roles.includes("pef")
             ? "pef"
             : "telefonista";
-      // Se a coluna "status" ainda não existe no banco (migration pendente), assume aprovado
-      const status = ((profileRes.data as any)?.status ?? "aprovado") as Status;
+      // Conta sem perfil = conta excluída/revogada → sem acesso
+      const status = (profileRes.data ? ((profileRes.data as any).status ?? "aprovado") : "rejeitado") as Status;
+
       if (mounted) setState({
         user,
         role,
