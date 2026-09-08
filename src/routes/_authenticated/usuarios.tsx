@@ -74,6 +74,7 @@ function Usuarios() {
 
   const pendentes = users.filter((u) => u.status === "pendente");
   const ativos = users.filter((u) => u.status === "aprovado");
+  const rejeitados = users.filter((u) => u.status === "rejeitado");
 
   const aprovar = useMutation({
     mutationFn: async (user: UserRow) => {
@@ -97,7 +98,7 @@ function Usuarios() {
       await rejectUserAccountFn({ data: { userId } });
     },
     onSuccess: () => {
-      toast.success("Cadastro rejeitado.");
+      toast.success("Cadastro rejeitado e e-mail liberado para novo cadastro.");
       queryClient.invalidateQueries({ queryKey: ["usuarios"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Erro ao rejeitar cadastro."),
@@ -262,6 +263,57 @@ function Usuarios() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Contas rejeitadas anteriormente (login ainda existe) */}
+      {rejeitados.length > 0 && (
+        <Card className="border-destructive/40 border">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ShieldAlert className="h-4 w-4 text-destructive" />
+              Contas rejeitadas ({rejeitados.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <p className="px-6 pb-3 text-xs text-muted-foreground">
+              Estas contas foram rejeitadas mas o login ainda existe, por isso o e-mail aparece como "já cadastrado". Exclua para liberar o e-mail.
+            </p>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Posto/Grad.</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rejeitados.map((u) => (
+                  <TableRow key={u.id}>
+                    <TableCell className="font-medium">
+                      {u.full_name}
+                      {u.email && <div className="text-xs font-normal text-muted-foreground">{u.email}</div>}
+                    </TableCell>
+                    <TableCell className="text-sm">{u.posto_graduacao ?? "—"}</TableCell>
+                    <TableCell className="text-right">
+                      {readOnly ? <span className="text-xs text-muted-foreground">Somente leitura</span> : (
+                        <div className="flex justify-end gap-2">
+                          <Button size="sm" variant="outline" onClick={() => aprovar.mutate(u)} disabled={aprovar.isPending}>
+                            <Check className="h-4 w-4 mr-1" />
+                            Aprovar
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => excluir.mutate(u.id)} disabled={excluir.isPending}>
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Excluir login
+                          </Button>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Aviso sobre conta mestre */}
       <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md p-3">

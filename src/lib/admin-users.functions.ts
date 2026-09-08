@@ -89,25 +89,22 @@ export const approveUserAccount = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** Rejeita uma conta: marca o cadastro como rejeitado e remove permissões. */
+/** Rejeita uma conta: remove login, cadastro e permissões (libera o e-mail). */
 export const rejectUserAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ userId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await assertComandante(context.supabase, context.userId);
+    if (data.userId === context.userId) throw new Error("Você não pode rejeitar a própria conta");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: target } = await supabaseAdmin.auth.admin.getUserById(data.userId);
-    const meta = (target.user?.user_metadata ?? {}) as any;
-    await supabaseAdmin.from("profiles").upsert(
-      {
-        id: data.userId,
-        full_name: meta.full_name ?? target.user?.email ?? "—",
-        status: "rejeitado",
-        requested_role: meta.role ?? "telefonista",
-      },
-      { onConflict: "id" },
-    );
+    const { data: target, error: getErr } = await supabaseAdmin.auth.admin.getUserById(data.userId);
+    if (getErr) throw new Error(getErr.message);
+    if (target.user?.email === MASTER_EMAIL) throw new Error("A conta mestre não pode ser removida");
+
     await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId);
+    await supabaseAdmin.from("profiles").delete().eq("id", data.userId);
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
+    if (error) throw new Error(error.message);
     return { ok: true };
   });
 
