@@ -459,13 +459,13 @@ function PefsInner() {
             <Button size="sm" variant="outline" onClick={() => baixarPlanilha(lista, `material-${aberta ?? ""}`)}>
               <Download className="h-4 w-4 mr-1" /> Baixar planilha
             </Button>
+            {podeAdicionar && (
+              <Button size="sm" onClick={() => novo(aberta!)}><Plus className="h-4 w-4 mr-1" /> Adicionar</Button>
+            )}
             {isAdmin && (
-              <>
-                <Button size="sm" onClick={() => novo(aberta!)}><Plus className="h-4 w-4 mr-1" /> Adicionar</Button>
-                <Button size="sm" variant="outline" onClick={() => { setImportUnidade(aberta!); setImportOpen(true); }}>
-                  <FileUp className="h-4 w-4 mr-1" /> Importar planilha
-                </Button>
-              </>
+              <Button size="sm" variant="outline" onClick={() => { setImportUnidade(aberta!); setImportOpen(true); }}>
+                <FileUp className="h-4 w-4 mr-1" /> Importar planilha
+              </Button>
             )}
           </div>
           {lista.length === 0 ? (
@@ -476,6 +476,9 @@ function PefsInner() {
               <Secao titulo="Material de consumo" itens={consumo} isAdmin={isAdmin} onEditar={editar} onExcluir={excluir} />
             </div>
           )}
+          <div className="pt-4 border-t">
+            <ServicosUnidade servicos={servicosDaUnidade(aberta ?? "")} />
+          </div>
         </DialogContent>
       </Dialog>
 
