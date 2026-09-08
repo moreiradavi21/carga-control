@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "sonner";
 import { Check, X, Trash2, Clock, ShieldCheck, ShieldAlert } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { listUserEmails, deleteUserAccount } from "@/lib/admin-users.functions";
+import { listAllAccounts, approveUserAccount, rejectUserAccount, deleteUserAccount } from "@/lib/admin-users.functions";
 
 
 export const Route = createFileRoute("/_authenticated/usuarios")({ component: Usuarios });
