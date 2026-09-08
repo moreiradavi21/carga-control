@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { MASTER_EMAIL } from "./constants";
 
-export type Role = "comandante" | "telefonista" | "quarta_secao";
+export type Role = "comandante" | "telefonista" | "quarta_secao" | "pef";
 export type Status = "pendente" | "aprovado" | "rejeitado";
 
 export interface AuthState {
@@ -11,12 +11,13 @@ export interface AuthState {
   role: Role | null;
   fullName: string | null;
   status: Status | null;
+  pefUnidade: string | null;
   loading: boolean;
 }
 
 export function useAuth(): AuthState {
   const [state, setState] = useState<AuthState>({
-    user: null, role: null, fullName: null, status: null, loading: true,
+    user: null, role: null, fullName: null, status: null, pefUnidade: null, loading: true,
   });
 
   useEffect(() => {
