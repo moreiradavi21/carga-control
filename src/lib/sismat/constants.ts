@@ -24,6 +24,21 @@ export const ROLE_LABEL: Record<string, string> = {
   comandante: "Cmt Pel",
   telefonista: "Telefonista",
   quarta_secao: "4ª Seção",
+  pef: "PEF / DEF",
 };
+
+// Unidades de fronteira (PEFs e DEF)
+export const PEF_UNIDADES = [
+  { value: "1_pef", label: "1º PEF" },
+  { value: "2_pef", label: "2º PEF" },
+  { value: "3_pef", label: "3º PEF" },
+  { value: "4_pef", label: "4º PEF" },
+  { value: "5_pef", label: "5º PEF" },
+  { value: "6_pef", label: "6º PEF" },
+  { value: "def",   label: "DEF"    },
+] as const;
+
+export const pefUnidadeLabel = (v?: string | null) =>
+  (v ? (PEF_UNIDADES.find((u) => u.value === v)?.label ?? v) : "—");
 
 export const roleLabel = (r?: string | null) => (r ? (ROLE_LABEL[r] ?? r) : "—");

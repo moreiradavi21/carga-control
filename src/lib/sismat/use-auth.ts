@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { MASTER_EMAIL } from "./constants";
 
-export type Role = "comandante" | "telefonista" | "quarta_secao";
+export type Role = "comandante" | "telefonista" | "quarta_secao" | "pef";
 export type Status = "pendente" | "aprovado" | "rejeitado";
 
 export interface AuthState {
@@ -11,12 +11,13 @@ export interface AuthState {
   role: Role | null;
   fullName: string | null;
   status: Status | null;
+  pefUnidade: string | null;
   loading: boolean;
 }
 
 export function useAuth(): AuthState {
   const [state, setState] = useState<AuthState>({
-    user: null, role: null, fullName: null, status: null, loading: true,
+    user: null, role: null, fullName: null, status: null, pefUnidade: null, loading: true,
   });
 
   useEffect(() => {
@@ -24,7 +25,7 @@ export function useAuth(): AuthState {
 
     async function load(user: User | null) {
       if (!user) {
-        if (mounted) setState({ user: null, role: null, fullName: null, status: null, loading: false });
+        if (mounted) setState({ user: null, role: null, fullName: null, status: null, pefUnidade: null, loading: false });
         return;
       }
 
@@ -40,6 +41,7 @@ export function useAuth(): AuthState {
           role: "comandante",
           fullName: profile?.full_name ?? user.email ?? null,
           status: "aprovado",
+          pefUnidade: null,
           loading: false,
         });
         return;
@@ -47,17 +49,26 @@ export function useAuth(): AuthState {
 
       const [rolesRes, profileRes] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", user.id),
-        supabase.from("profiles").select("full_name, status, requested_role").eq("id", user.id).maybeSingle(),
+        supabase.from("profiles").select("full_name, status, requested_role, pef_unidade").eq("id", user.id).maybeSingle(),
       ]);
       const roles = (rolesRes.data ?? []).map((r: any) => String(r.role));
       const role: Role = roles.includes("comandante")
         ? "comandante"
         : roles.includes("quarta_secao")
           ? "quarta_secao"
-          : "telefonista";
+          : roles.includes("pef")
+            ? "pef"
+            : "telefonista";
       // Se a coluna "status" ainda não existe no banco (migration pendente), assume aprovado
       const status = ((profileRes.data as any)?.status ?? "aprovado") as Status;
-      if (mounted) setState({ user, role, fullName: profileRes.data?.full_name ?? user.email ?? null, status, loading: false });
+      if (mounted) setState({
+        user,
+        role,
+        fullName: profileRes.data?.full_name ?? user.email ?? null,
+        status,
+        pefUnidade: ((profileRes.data as any)?.pef_unidade ?? null) as string | null,
+        loading: false,
+      });
     }
 
     supabase.auth.getUser().then(({ data }) => load(data.user));

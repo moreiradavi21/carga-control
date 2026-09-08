@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Shield, Radio, Clock } from "lucide-react";
+import { PEF_UNIDADES, pefUnidadeLabel } from "@/lib/sismat/constants";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -29,7 +30,11 @@ const loginSchema = z.object({
 const signupSchema = loginSchema.extend({
   full_name: z.string().min(3, "Nome completo obrigatório"),
   posto_graduacao: z.string().min(1, "Informe o posto/graduação"),
-  role: z.enum(["comandante", "telefonista", "quarta_secao"]),
+  role: z.enum(["comandante", "telefonista", "quarta_secao", "pef"]),
+  pef_unidade: z.string().optional(),
+}).refine((v) => v.role !== "pef" || !!v.pef_unidade, {
+  message: "Selecione o PEF/DEF",
+  path: ["pef_unidade"],
 });
 
 function AuthPage() {
@@ -38,7 +43,8 @@ function AuthPage() {
   const [cadastroPendente, setCadastroPendente] = useState(false);
 
   const loginForm = useForm({ resolver: zodResolver(loginSchema), defaultValues: { email: "", password: "" } });
-  const signupForm = useForm<z.infer<typeof signupSchema>>({ resolver: zodResolver(signupSchema), defaultValues: { email: "", password: "", full_name: "", posto_graduacao: "", role: "telefonista" } });
+  const signupForm = useForm<z.infer<typeof signupSchema>>({ resolver: zodResolver(signupSchema), defaultValues: { email: "", password: "", full_name: "", posto_graduacao: "", role: "telefonista", pef_unidade: "1_pef" } });
+  const roleSelecionada = signupForm.watch("role");
 
   async function onLogin(values: z.infer<typeof loginSchema>) {
     setLoading(true);
@@ -60,6 +66,7 @@ function AuthPage() {
           full_name: values.full_name,
           posto_graduacao: values.posto_graduacao,
           role: values.role,
+          pef_unidade: values.role === "pef" ? values.pef_unidade : null,
           // status inicia como 'pendente' — definido na migração SQL
         },
       },
@@ -160,9 +167,28 @@ function AuthPage() {
                       <option value="telefonista">Telefonista</option>
                       <option value="comandante">Cmt Pel</option>
                       <option value="quarta_secao">4ª Seção (somente leitura)</option>
+                      <option value="pef">PEF</option>
                     </select>
                     {signupForm.formState.errors.role && <p className="text-xs text-destructive">{signupForm.formState.errors.role.message}</p>}
                   </div>
+                  {roleSelecionada === "pef" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="s-pef">Qual PEF / DEF</Label>
+                      <select
+                        id="s-pef"
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                        {...signupForm.register("pef_unidade")}
+                      >
+                        {PEF_UNIDADES.map((u) => (
+                          <option key={u.value} value={u.value}>{u.label}</option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-muted-foreground">
+                        O acesso ficará restrito ao material do {pefUnidadeLabel(signupForm.watch("pef_unidade"))}.
+                      </p>
+                      {signupForm.formState.errors.pef_unidade && <p className="text-xs text-destructive">{signupForm.formState.errors.pef_unidade.message}</p>}
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="s-email">E-mail</Label>
                     <Input id="s-email" type="email" {...signupForm.register("email")} />

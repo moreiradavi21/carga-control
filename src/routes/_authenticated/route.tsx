@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/sismat/use-auth";
@@ -72,6 +73,13 @@ function AuthLayout() {
   const nav = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
+  // Contas PEF só têm acesso à página de PEFs e DEF
+  useEffect(() => {
+    if (!loading && status === "aprovado" && role === "pef" && !pathname.startsWith("/pefs")) {
+      nav({ to: "/pefs", replace: true });
+    }
+  }, [loading, status, role, pathname, nav]);
+
   async function signOut() {
     await supabase.auth.signOut();
     toast.success("Sessão encerrada");
@@ -127,10 +135,18 @@ function AuthLayout() {
   }
 
   const isAdminView = role === "comandante" || role === "quarta_secao";
-  const items = isAdminView
-    ? [...navBase, ...navAdmin.filter((n) => !(role === "quarta_secao" && n.to === "/importar"))]
-    : navBase;
-  const roleLabel = role === "comandante" ? "Cmt Pel" : role === "quarta_secao" ? "4ª Seção (somente leitura)" : "Telefonista";
+  const items = role === "pef"
+    ? navBase.filter((n) => n.to === "/pefs")
+    : isAdminView
+      ? [...navBase, ...navAdmin.filter((n) => !(role === "quarta_secao" && n.to === "/importar"))]
+      : navBase;
+  const roleLabel = role === "comandante"
+    ? "Cmt Pel"
+    : role === "quarta_secao"
+      ? "4ª Seção (somente leitura)"
+      : role === "pef"
+        ? "PEF / DEF"
+        : "Telefonista";
 
   return (
     <SidebarProvider>
