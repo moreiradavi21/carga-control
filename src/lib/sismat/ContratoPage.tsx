@@ -144,6 +144,31 @@ function FormContrato({
             onChange={(e) => setForm((f) => ({ ...f, data_validade: e.target.value }))}
           />
         </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">É de PEF?</Label>
+          <select
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+            value={form.is_pef}
+            onChange={(e) => setForm((f) => ({ ...f, is_pef: e.target.value }))}
+          >
+            <option value="nao">Não</option>
+            <option value="sim">Sim</option>
+          </select>
+        </div>
+        {form.is_pef === "sim" && (
+          <div className="space-y-1.5">
+            <Label className="text-xs">Qual PEF / DEF</Label>
+            <select
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              value={form.pef_unidade}
+              onChange={(e) => setForm((f) => ({ ...f, pef_unidade: e.target.value }))}
+            >
+              {PEF_UNIDADES.map((u) => (
+                <option key={u.value} value={u.value}>{u.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
       <div className="flex gap-2">
         <Button size="sm" onClick={salvar} disabled={saving}>
