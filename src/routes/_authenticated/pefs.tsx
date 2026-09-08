@@ -489,10 +489,10 @@ function PefsInner() {
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Unidade</Label>
-              <Select value={form.unidade} onValueChange={(v) => setForm({ ...form, unidade: v })}>
+              <Select value={form.unidade} onValueChange={(v) => setForm({ ...form, unidade: v })} disabled={isPefUser}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {UNIDADES.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+                  {unidadesVisiveis.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
