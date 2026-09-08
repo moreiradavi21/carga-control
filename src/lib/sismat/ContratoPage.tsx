@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/sismat/use-auth";
+import { PEF_UNIDADES, pefUnidadeLabel } from "@/lib/sismat/constants";
 import { differenceInDays, format, parseISO } from "date-fns";
 import {
   Calendar, Upload, CheckCircle2, Clock, AlertTriangle,
@@ -24,6 +25,8 @@ type Contrato = {
   data_inicio: string;
   data_validade: string;
   descricao_contrato?: string | null;
+  is_pef?: boolean | null;
+  pef_unidade?: string | null;
 };
 
 type Pagamento = {
