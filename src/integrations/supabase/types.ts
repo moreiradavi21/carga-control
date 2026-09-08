@@ -593,6 +593,7 @@ export type Database = {
       }
       is_comandante: { Args: { _user_id: string }; Returns: boolean }
       is_quarta_secao: { Args: { _user_id: string }; Returns: boolean }
+      pef_unidade_do: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
       app_role: "comandante" | "telefonista" | "quarta_secao" | "pef"
