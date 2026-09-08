@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Radio, Plus, Pencil, Trash2, FileUp, Package, Download } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { PEF_UNIDADES, pefUnidadeLabel } from "@/lib/sismat/constants";
-import { diasRestantesContrato, badgeVencimento } from "@/lib/sismat/ContratoPage";
+import { diasRestantesContrato, badgeVencimento, unidadesDoContrato } from "@/lib/sismat/ContratoPage";
 
 export const Route = createFileRoute("/_authenticated/pefs")({
   component: PefsPage,
@@ -45,6 +45,7 @@ type ServicoPef = {
   data_validade: string;
   descricao_contrato: string | null;
   pef_unidade: string | null;
+  pef_unidades: string[] | null;
 };
 
 const TIPO_SERVICO_LABEL: Record<string, string> = {
@@ -245,7 +246,7 @@ function PefsInner() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("contratos")
-        .select("id, tipo, fornecedor, data_inicio, data_validade, descricao_contrato, is_pef, pef_unidade")
+        .select("id, tipo, fornecedor, data_inicio, data_validade, descricao_contrato, is_pef, pef_unidade, pef_unidades")
         .eq("is_pef", true)
         .order("data_validade");
       if (error) return [] as ServicoPef[];
@@ -253,7 +254,8 @@ function PefsInner() {
     },
   });
 
-  const servicosDaUnidade = (u: string) => servicos.filter((s) => s.pef_unidade === u);
+  const servicosDaUnidade = (u: string) =>
+    servicos.filter((s) => unidadesDoContrato(s).includes(u));
 
   const doUnidade = (u: string) =>
     itens.filter((i) => i.unidade === u && (!isPefUser || i.unidade === minhaUnidade));

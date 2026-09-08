@@ -257,6 +257,7 @@ export type Database = {
           id: string
           is_pef: boolean
           pef_unidade: string | null
+          pef_unidades: string[]
           tipo: string
           updated_at: string
         }
@@ -270,6 +271,7 @@ export type Database = {
           id?: string
           is_pef?: boolean
           pef_unidade?: string | null
+          pef_unidades?: string[]
           tipo: string
           updated_at?: string
         }
@@ -283,6 +285,7 @@ export type Database = {
           id?: string
           is_pef?: boolean
           pef_unidade?: string | null
+          pef_unidades?: string[]
           tipo?: string
           updated_at?: string
         }

@@ -27,7 +27,14 @@ type Contrato = {
   descricao_contrato?: string | null;
   is_pef?: boolean | null;
   pef_unidade?: string | null;
+  pef_unidades?: string[] | null;
 };
+
+export function unidadesDoContrato(c: { pef_unidades?: string[] | null; pef_unidade?: string | null }): string[] {
+  const arr = (c.pef_unidades ?? []).filter(Boolean);
+  if (arr.length > 0) return arr;
+  return c.pef_unidade ? [c.pef_unidade] : [];
+}
 
 type Pagamento = {
   id: string;
@@ -71,13 +78,17 @@ function FormContrato({
     data_inicio: inicial?.data_inicio ?? "",
     data_validade: inicial?.data_validade ?? "",
     is_pef: inicial?.is_pef ? "sim" : "nao",
-    pef_unidade: inicial?.pef_unidade ?? "1_pef",
+    pef_unidades: inicial ? unidadesDoContrato(inicial) : ([] as string[]),
   });
   const [saving, setSaving] = useState(false);
 
   async function salvar() {
     if (!form.fornecedor.trim() || !form.data_inicio || !form.data_validade) {
       toast.error("Preencha Fornecedor, Data de início e Data de validade.");
+      return;
+    }
+    if (form.is_pef === "sim" && form.pef_unidades.length === 0) {
+      toast.error("Selecione ao menos um PEF/DEF.");
       return;
     }
     setSaving(true);
@@ -89,7 +100,8 @@ function FormContrato({
         data_inicio: form.data_inicio,
         data_validade: form.data_validade,
         is_pef: form.is_pef === "sim",
-        pef_unidade: form.is_pef === "sim" ? form.pef_unidade : null,
+        pef_unidade: form.is_pef === "sim" ? (form.pef_unidades[0] ?? null) : null,
+        pef_unidades: form.is_pef === "sim" ? form.pef_unidades : [],
       } as any;
       if (inicial?.id) {
         const { error } = await supabase.from("contratos").update(payload).eq("id", inicial.id);
@@ -156,17 +168,34 @@ function FormContrato({
           </select>
         </div>
         {form.is_pef === "sim" && (
-          <div className="space-y-1.5">
-            <Label className="text-xs">Qual PEF / DEF</Label>
-            <select
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
-              value={form.pef_unidade}
-              onChange={(e) => setForm((f) => ({ ...f, pef_unidade: e.target.value }))}
-            >
-              {PEF_UNIDADES.map((u) => (
-                <option key={u.value} value={u.value}>{u.label}</option>
-              ))}
-            </select>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label className="text-xs">Quais PEF / DEF (pode marcar vários)</Label>
+            <div className="flex flex-wrap gap-2">
+              {PEF_UNIDADES.map((u) => {
+                const ativo = form.pef_unidades.includes(u.value);
+                return (
+                  <button
+                    type="button"
+                    key={u.value}
+                    onClick={() =>
+                      setForm((f) => ({
+                        ...f,
+                        pef_unidades: ativo
+                          ? f.pef_unidades.filter((x) => x !== u.value)
+                          : [...f.pef_unidades, u.value],
+                      }))
+                    }
+                    className={`text-xs font-semibold px-2.5 py-1 rounded-full border transition-colors ${
+                      ativo
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-transparent text-muted-foreground border-input hover:bg-muted"
+                    }`}
+                  >
+                    {u.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
@@ -474,8 +503,12 @@ function ContratoCard({
               <p className="text-xs text-muted-foreground">{contrato.descricao_contrato}</p>
             )}
             {contrato.is_pef && (
-              <span className="inline-flex mt-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded border border-primary/30 bg-primary/10 text-primary">
-                {pefUnidadeLabel(contrato.pef_unidade)}
+              <span className="inline-flex flex-wrap gap-1 mt-0.5">
+                {unidadesDoContrato(contrato).map((u) => (
+                  <span key={u} className="text-[10px] font-semibold px-1.5 py-0.5 rounded border border-primary/30 bg-primary/10 text-primary">
+                    {pefUnidadeLabel(u)}
+                  </span>
+                ))}
               </span>
             )}
             <p className="text-xs text-muted-foreground mt-0.5">
