@@ -45,6 +45,7 @@ type ServicoPef = {
   data_validade: string;
   descricao_contrato: string | null;
   pef_unidade: string | null;
+  pef_unidades: string[] | null;
 };
 
 const TIPO_SERVICO_LABEL: Record<string, string> = {
