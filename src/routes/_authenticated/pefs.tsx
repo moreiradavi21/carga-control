@@ -238,7 +238,23 @@ function PefsInner() {
     },
   });
 
-  const doUnidade = (u: string) => itens.filter((i) => i.unidade === u);
+  const { data: servicos = [] } = useQuery({
+    queryKey: ["servicos-pef"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("contratos")
+        .select("id, tipo, fornecedor, data_inicio, data_validade, descricao_contrato, is_pef, pef_unidade")
+        .eq("is_pef", true)
+        .order("data_validade");
+      if (error) return [] as ServicoPef[];
+      return (data ?? []) as ServicoPef[];
+    },
+  });
+
+  const servicosDaUnidade = (u: string) => servicos.filter((s) => s.pef_unidade === u);
+
+  const doUnidade = (u: string) =>
+    itens.filter((i) => i.unidade === u && (!isPefUser || i.unidade === minhaUnidade));
   const lista = aberta ? doUnidade(aberta) : [];
   const permanentes = lista.filter((i) => (i.tipo_material ?? "permanente") !== "consumo");
   const consumo = lista.filter((i) => (i.tipo_material ?? "permanente") === "consumo");
