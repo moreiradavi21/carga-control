@@ -70,6 +70,8 @@ function FormContrato({
     descricao_contrato: inicial?.descricao_contrato ?? "",
     data_inicio: inicial?.data_inicio ?? "",
     data_validade: inicial?.data_validade ?? "",
+    is_pef: inicial?.is_pef ? "sim" : "nao",
+    pef_unidade: inicial?.pef_unidade ?? "1_pef",
   });
   const [saving, setSaving] = useState(false);
 
@@ -86,7 +88,9 @@ function FormContrato({
         descricao_contrato: form.descricao_contrato.trim() || null,
         data_inicio: form.data_inicio,
         data_validade: form.data_validade,
-      };
+        is_pef: form.is_pef === "sim",
+        pef_unidade: form.is_pef === "sim" ? form.pef_unidade : null,
+      } as any;
       if (inicial?.id) {
         const { error } = await supabase.from("contratos").update(payload).eq("id", inicial.id);
         if (error) throw error;
