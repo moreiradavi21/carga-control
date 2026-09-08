@@ -139,7 +139,7 @@ function AuthLayout() {
     ? navBase.filter((n) => n.to === "/pefs")
     : isAdminView
       ? [...navBase, ...navAdmin.filter((n) => !(role === "quarta_secao" && n.to === "/importar"))]
-      : navBase;
+      : navBase.filter((n) => n.to === "/dashboard" || n.to === "/cautelas");
   const roleLabel = role === "comandante"
     ? "Cmt Pel"
     : role === "adjunto"
