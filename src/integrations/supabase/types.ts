@@ -255,6 +255,8 @@ export type Database = {
           descricao_contrato: string | null
           fornecedor: string
           id: string
+          is_pef: boolean
+          pef_unidade: string | null
           tipo: string
           updated_at: string
         }
@@ -266,6 +268,8 @@ export type Database = {
           descricao_contrato?: string | null
           fornecedor: string
           id?: string
+          is_pef?: boolean
+          pef_unidade?: string | null
           tipo: string
           updated_at?: string
         }
@@ -277,6 +281,8 @@ export type Database = {
           descricao_contrato?: string | null
           fornecedor?: string
           id?: string
+          is_pef?: boolean
+          pef_unidade?: string | null
           tipo?: string
           updated_at?: string
         }
@@ -519,6 +525,7 @@ export type Database = {
           created_at: string
           full_name: string
           id: string
+          pef_unidade: string | null
           posto_graduacao: string | null
           requested_role: string
           status: string
@@ -528,6 +535,7 @@ export type Database = {
           created_at?: string
           full_name: string
           id: string
+          pef_unidade?: string | null
           posto_graduacao?: string | null
           requested_role?: string
           status?: string
@@ -537,6 +545,7 @@ export type Database = {
           created_at?: string
           full_name?: string
           id?: string
+          pef_unidade?: string | null
           posto_graduacao?: string | null
           requested_role?: string
           status?: string
@@ -586,7 +595,7 @@ export type Database = {
       is_quarta_secao: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "comandante" | "telefonista" | "quarta_secao"
+      app_role: "comandante" | "telefonista" | "quarta_secao" | "pef"
       situacao_equipamento:
         | "disponivel"
         | "em_cautela"
@@ -724,7 +733,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["comandante", "telefonista", "quarta_secao"],
+      app_role: ["comandante", "telefonista", "quarta_secao", "pef"],
       situacao_equipamento: [
         "disponivel",
         "em_cautela",
