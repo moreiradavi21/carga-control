@@ -503,8 +503,12 @@ function ContratoCard({
               <p className="text-xs text-muted-foreground">{contrato.descricao_contrato}</p>
             )}
             {contrato.is_pef && (
-              <span className="inline-flex mt-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded border border-primary/30 bg-primary/10 text-primary">
-                {pefUnidadeLabel(contrato.pef_unidade)}
+              <span className="inline-flex flex-wrap gap-1 mt-0.5">
+                {unidadesDoContrato(contrato).map((u) => (
+                  <span key={u} className="text-[10px] font-semibold px-1.5 py-0.5 rounded border border-primary/30 bg-primary/10 text-primary">
+                    {pefUnidadeLabel(u)}
+                  </span>
+                ))}
               </span>
             )}
             <p className="text-xs text-muted-foreground mt-0.5">
