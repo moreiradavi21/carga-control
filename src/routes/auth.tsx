@@ -57,7 +57,7 @@ function AuthPage() {
 
   async function onSignup(values: z.infer<typeof signupSchema>) {
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
       options: {
@@ -72,9 +72,19 @@ function AuthPage() {
       },
     });
     setLoading(false);
-    if (error) return toast.error("Falha no cadastro: " + error.message);
+    if (error) {
+      const msg = /already|registered|exists/i.test(error.message)
+        ? "Este e-mail já está cadastrado. Faça login ou use outro e-mail."
+        : "Falha no cadastro: " + error.message;
+      return toast.error(msg);
+    }
+    // Supabase retorna usuário sem identidades quando o e-mail já existe
+    if (data.user && (data.user.identities?.length ?? 0) === 0) {
+      return toast.error("Este e-mail já está cadastrado. Faça login ou use outro e-mail.");
+    }
     setCadastroPendente(true);
   }
+
 
   if (cadastroPendente) {
     return (

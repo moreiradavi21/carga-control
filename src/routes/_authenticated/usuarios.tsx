@@ -31,6 +31,9 @@ function Usuarios() {
   const { role: myRole, user: myUser } = useAuth();
   const queryClient = useQueryClient();
   const nav = useNavigate();
+  const listUserEmailsFn = useServerFn(listUserEmails);
+  const deleteUserAccountFn = useServerFn(deleteUserAccount);
+
 
   if (myRole && myRole !== "comandante" && myRole !== "quarta_secao") {
     nav({ to: "/dashboard" });
