@@ -87,6 +87,10 @@ function FormContrato({
       toast.error("Preencha Fornecedor, Data de início e Data de validade.");
       return;
     }
+    if (form.is_pef === "sim" && form.pef_unidades.length === 0) {
+      toast.error("Selecione ao menos um PEF/DEF.");
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
