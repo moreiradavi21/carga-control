@@ -76,7 +76,7 @@ function Usuarios() {
         .maybeSingle();
 
       if (!existingRole) {
-        const role = (["comandante", "quarta_secao"].includes(user.requested_role)
+        const role = (["comandante", "quarta_secao", "pef"].includes(user.requested_role)
           ? user.requested_role
           : "telefonista") as any;
         const { error: e2 } = await supabase.from("user_roles").insert({ user_id: user.id, role });
