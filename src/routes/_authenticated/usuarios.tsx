@@ -98,7 +98,7 @@ function Usuarios() {
       await rejectUserAccountFn({ data: { userId } });
     },
     onSuccess: () => {
-      toast.success("Cadastro rejeitado.");
+      toast.success("Cadastro rejeitado e e-mail liberado para novo cadastro.");
       queryClient.invalidateQueries({ queryKey: ["usuarios"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Erro ao rejeitar cadastro."),
