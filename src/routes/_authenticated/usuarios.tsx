@@ -10,6 +10,9 @@ import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Check, X, Trash2, Clock, ShieldCheck, ShieldAlert } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { listUserEmails, deleteUserAccount } from "@/lib/admin-users.functions";
+
 
 export const Route = createFileRoute("/_authenticated/usuarios")({ component: Usuarios });
 
@@ -28,6 +31,9 @@ function Usuarios() {
   const { role: myRole, user: myUser } = useAuth();
   const queryClient = useQueryClient();
   const nav = useNavigate();
+  const listUserEmailsFn = useServerFn(listUserEmails);
+  const deleteUserAccountFn = useServerFn(deleteUserAccount);
+
 
   if (myRole && myRole !== "comandante" && myRole !== "quarta_secao") {
     nav({ to: "/dashboard" });
@@ -38,14 +44,13 @@ function Usuarios() {
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["usuarios"],
     queryFn: async () => {
-      const [{ data: profiles }, { data: roles }, { data: authUsers }] = await Promise.all([
+      const [{ data: profiles }, { data: roles }, emails] = await Promise.all([
         supabase.from("profiles").select("id, full_name, posto_graduacao, status, requested_role, created_at").order("created_at", { ascending: false }),
         supabase.from("user_roles").select("user_id, role"),
-        // Buscar e-mails via auth (apenas disponível com service role; fallback gracioso)
-        supabase.auth.admin?.listUsers().catch(() => ({ data: { users: [] } })),
+        listUserEmailsFn().catch(() => [] as { id: string; email: string | null }[]),
       ]);
 
-      const authList = (authUsers as any)?.data?.users ?? [];
+      const authList = emails ?? [];
 
       return (profiles ?? [])
         .map((p: any) => ({
@@ -57,6 +62,7 @@ function Usuarios() {
         .filter((u: any) => u.email !== MASTER_EMAIL && u.id !== myUser?.id) as UserRow[];
     },
   });
+
 
   const pendentes = users.filter((u) => u.status === "pendente");
   const ativos = users.filter((u) => u.status === "aprovado");
@@ -102,19 +108,17 @@ function Usuarios() {
     },
     onError: () => toast.error("Erro ao rejeitar cadastro."),
   });
-
   const excluir = useMutation({
     mutationFn: async (userId: string) => {
-      await supabase.from("user_roles").delete().eq("user_id", userId);
-      const { error } = await supabase.from("profiles").delete().eq("id", userId);
-      if (error) throw error;
+      await deleteUserAccountFn({ data: { userId } });
     },
     onSuccess: () => {
-      toast.success("Usuário excluído.");
+      toast.success("Conta excluída — o acesso foi revogado.");
       queryClient.invalidateQueries({ queryKey: ["usuarios"] });
     },
-    onError: () => toast.error("Erro ao excluir usuário."),
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao excluir usuário."),
   });
+
 
   if (isLoading) {
     return <div className="text-muted-foreground text-sm">Carregando usuários...</div>;
