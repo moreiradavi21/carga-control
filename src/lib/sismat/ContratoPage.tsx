@@ -27,7 +27,14 @@ type Contrato = {
   descricao_contrato?: string | null;
   is_pef?: boolean | null;
   pef_unidade?: string | null;
+  pef_unidades?: string[] | null;
 };
+
+export function unidadesDoContrato(c: { pef_unidades?: string[] | null; pef_unidade?: string | null }): string[] {
+  const arr = (c.pef_unidades ?? []).filter(Boolean);
+  if (arr.length > 0) return arr;
+  return c.pef_unidade ? [c.pef_unidade] : [];
+}
 
 type Pagamento = {
   id: string;
