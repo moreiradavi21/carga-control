@@ -15,6 +15,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Radio, Plus, Pencil, Trash2, FileUp, Package, Download } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { PEF_UNIDADES, pefUnidadeLabel } from "@/lib/sismat/constants";
+import { diasRestantesContrato, badgeVencimento } from "@/lib/sismat/ContratoPage";
 
 export const Route = createFileRoute("/_authenticated/pefs")({
   component: PefsPage,
@@ -30,17 +33,72 @@ export const Route = createFileRoute("/_authenticated/pefs")({
   }),
 });
 
-const UNIDADES = [
-  { value: "1_pef", label: "1º PEF" },
-  { value: "2_pef", label: "2º PEF" },
-  { value: "3_pef", label: "3º PEF" },
-  { value: "4_pef", label: "4º PEF" },
-  { value: "5_pef", label: "5º PEF" },
-  { value: "6_pef", label: "6º PEF" },
-  { value: "def",   label: "DEF"    },
-];
+const UNIDADES = [...PEF_UNIDADES];
 
-const unidadeLabel = (v: string) => UNIDADES.find((u) => u.value === v)?.label ?? v;
+const unidadeLabel = (v: string) => pefUnidadeLabel(v);
+
+type ServicoPef = {
+  id: string;
+  tipo: string;
+  fornecedor: string;
+  data_inicio: string;
+  data_validade: string;
+  descricao_contrato: string | null;
+  pef_unidade: string | null;
+};
+
+const TIPO_SERVICO_LABEL: Record<string, string> = {
+  "spot-x": "Spot X",
+  spot_x: "Spot X",
+  satelital: "Satelital",
+  telefonia: "Telefonia",
+  starlink: "Starlink",
+};
+
+function ServicosUnidade({ servicos }: { servicos: ServicoPef[] }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <h4 className="text-sm font-semibold uppercase tracking-wide">Vencimento dos serviços</h4>
+        <Badge variant="outline" className="text-xs">{servicos.length}</Badge>
+      </div>
+      {servicos.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nenhum serviço vinculado a esta unidade.</p>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Serviço</TableHead>
+              <TableHead>Fornecedor</TableHead>
+              <TableHead>Identificação</TableHead>
+              <TableHead>Validade</TableHead>
+              <TableHead>Situação</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {servicos.map((s) => {
+              const dias = diasRestantesContrato(s.data_validade);
+              const badge = badgeVencimento(dias);
+              return (
+                <TableRow key={s.id}>
+                  <TableCell className="font-medium">{TIPO_SERVICO_LABEL[s.tipo] ?? s.tipo}</TableCell>
+                  <TableCell className="text-sm">{s.fornecedor}</TableCell>
+                  <TableCell className="text-sm">{s.descricao_contrato ?? "—"}</TableCell>
+                  <TableCell className="text-sm">{format(parseISO(s.data_validade), "dd/MM/yyyy")}</TableCell>
+                  <TableCell>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${badge.className}`}>
+                      {badge.label}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      )}
+    </div>
+  );
+}
 
 type Item = {
   id: string;
@@ -148,8 +206,14 @@ function Secao({
 }
 
 function PefsInner() {
-  const { role } = useAuth();
+  const { role, pefUnidade } = useAuth();
   const isAdmin = role === "comandante";
+  const isPefUser = role === "pef";
+  const minhaUnidade = isPefUser ? (pefUnidade ?? null) : null;
+  const unidadesVisiveis = isPefUser
+    ? UNIDADES.filter((u) => u.value === minhaUnidade)
+    : UNIDADES;
+  const podeAdicionar = isAdmin || (isPefUser && !!minhaUnidade);
   const qc = useQueryClient();
 
   const [aberta, setAberta] = useState<string | null>(null);
@@ -174,7 +238,23 @@ function PefsInner() {
     },
   });
 
-  const doUnidade = (u: string) => itens.filter((i) => i.unidade === u);
+  const { data: servicos = [] } = useQuery({
+    queryKey: ["servicos-pef"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("contratos")
+        .select("id, tipo, fornecedor, data_inicio, data_validade, descricao_contrato, is_pef, pef_unidade")
+        .eq("is_pef", true)
+        .order("data_validade");
+      if (error) return [] as ServicoPef[];
+      return (data ?? []) as ServicoPef[];
+    },
+  });
+
+  const servicosDaUnidade = (u: string) => servicos.filter((s) => s.pef_unidade === u);
+
+  const doUnidade = (u: string) =>
+    itens.filter((i) => i.unidade === u && (!isPefUser || i.unidade === minhaUnidade));
   const lista = aberta ? doUnidade(aberta) : [];
   const permanentes = lista.filter((i) => (i.tipo_material ?? "permanente") !== "consumo");
   const consumo = lista.filter((i) => (i.tipo_material ?? "permanente") === "consumo");
@@ -319,20 +399,20 @@ function PefsInner() {
             <Download className="h-4 w-4 mr-2" /> Baixar relatório
           </Button>
           {isAdmin && (
-            <>
             <Button variant="outline" onClick={() => setImportOpen(true)}>
               <FileUp className="h-4 w-4 mr-2" /> Importar planilha
             </Button>
-            <Button onClick={() => novo(aberta ?? "1_pef")}>
+          )}
+          {podeAdicionar && (
+            <Button onClick={() => novo(aberta ?? minhaUnidade ?? "1_pef")}>
               <Plus className="h-4 w-4 mr-2" /> Novo item
             </Button>
-            </>
           )}
         </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-        {UNIDADES.map((u) => (
+        {unidadesVisiveis.map((u) => (
           <Card
             key={u.value}
             onClick={() => setAberta(u.value)}
@@ -379,13 +459,13 @@ function PefsInner() {
             <Button size="sm" variant="outline" onClick={() => baixarPlanilha(lista, `material-${aberta ?? ""}`)}>
               <Download className="h-4 w-4 mr-1" /> Baixar planilha
             </Button>
+            {podeAdicionar && (
+              <Button size="sm" onClick={() => novo(aberta!)}><Plus className="h-4 w-4 mr-1" /> Adicionar</Button>
+            )}
             {isAdmin && (
-              <>
-                <Button size="sm" onClick={() => novo(aberta!)}><Plus className="h-4 w-4 mr-1" /> Adicionar</Button>
-                <Button size="sm" variant="outline" onClick={() => { setImportUnidade(aberta!); setImportOpen(true); }}>
-                  <FileUp className="h-4 w-4 mr-1" /> Importar planilha
-                </Button>
-              </>
+              <Button size="sm" variant="outline" onClick={() => { setImportUnidade(aberta!); setImportOpen(true); }}>
+                <FileUp className="h-4 w-4 mr-1" /> Importar planilha
+              </Button>
             )}
           </div>
           {lista.length === 0 ? (
@@ -396,6 +476,9 @@ function PefsInner() {
               <Secao titulo="Material de consumo" itens={consumo} isAdmin={isAdmin} onEditar={editar} onExcluir={excluir} />
             </div>
           )}
+          <div className="pt-4 border-t">
+            <ServicosUnidade servicos={servicosDaUnidade(aberta ?? "")} />
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -406,10 +489,10 @@ function PefsInner() {
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Unidade</Label>
-              <Select value={form.unidade} onValueChange={(v) => setForm({ ...form, unidade: v })}>
+              <Select value={form.unidade} onValueChange={(v) => setForm({ ...form, unidade: v })} disabled={isPefUser}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {UNIDADES.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+                  {unidadesVisiveis.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
