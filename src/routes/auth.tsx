@@ -29,7 +29,11 @@ const loginSchema = z.object({
 const signupSchema = loginSchema.extend({
   full_name: z.string().min(3, "Nome completo obrigatório"),
   posto_graduacao: z.string().min(1, "Informe o posto/graduação"),
-  role: z.enum(["comandante", "telefonista", "quarta_secao"]),
+  role: z.enum(["comandante", "telefonista", "quarta_secao", "pef"]),
+  pef_unidade: z.string().optional(),
+}).refine((v) => v.role !== "pef" || !!v.pef_unidade, {
+  message: "Selecione o PEF/DEF",
+  path: ["pef_unidade"],
 });
 
 function AuthPage() {
@@ -38,7 +42,8 @@ function AuthPage() {
   const [cadastroPendente, setCadastroPendente] = useState(false);
 
   const loginForm = useForm({ resolver: zodResolver(loginSchema), defaultValues: { email: "", password: "" } });
-  const signupForm = useForm<z.infer<typeof signupSchema>>({ resolver: zodResolver(signupSchema), defaultValues: { email: "", password: "", full_name: "", posto_graduacao: "", role: "telefonista" } });
+  const signupForm = useForm<z.infer<typeof signupSchema>>({ resolver: zodResolver(signupSchema), defaultValues: { email: "", password: "", full_name: "", posto_graduacao: "", role: "telefonista", pef_unidade: "1_pef" } });
+  const roleSelecionada = signupForm.watch("role");
 
   async function onLogin(values: z.infer<typeof loginSchema>) {
     setLoading(true);
