@@ -246,7 +246,7 @@ function PefsInner() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("contratos")
-        .select("id, tipo, fornecedor, data_inicio, data_validade, descricao_contrato, is_pef, pef_unidade")
+        .select("id, tipo, fornecedor, data_inicio, data_validade, descricao_contrato, is_pef, pef_unidade, pef_unidades")
         .eq("is_pef", true)
         .order("data_validade");
       if (error) return [] as ServicoPef[];
@@ -254,7 +254,8 @@ function PefsInner() {
     },
   });
 
-  const servicosDaUnidade = (u: string) => servicos.filter((s) => s.pef_unidade === u);
+  const servicosDaUnidade = (u: string) =>
+    servicos.filter((s) => unidadesDoContrato(s).includes(u));
 
   const doUnidade = (u: string) =>
     itens.filter((i) => i.unidade === u && (!isPefUser || i.unidade === minhaUnidade));
