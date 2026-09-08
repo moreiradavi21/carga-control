@@ -473,6 +473,11 @@ function ContratoCard({
             {contrato.descricao_contrato && (
               <p className="text-xs text-muted-foreground">{contrato.descricao_contrato}</p>
             )}
+            {contrato.is_pef && (
+              <span className="inline-flex mt-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded border border-primary/30 bg-primary/10 text-primary">
+                {pefUnidadeLabel(contrato.pef_unidade)}
+              </span>
+            )}
             <p className="text-xs text-muted-foreground mt-0.5">
               {format(parseISO(contrato.data_inicio), "dd/MM/yyyy")} →{" "}
               <span className={dias <= 30 ? "text-red-600 font-medium" : dias <= 90 ? "text-amber-600 font-medium" : ""}>
