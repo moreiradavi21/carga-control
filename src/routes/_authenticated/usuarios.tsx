@@ -74,6 +74,7 @@ function Usuarios() {
 
   const pendentes = users.filter((u) => u.status === "pendente");
   const ativos = users.filter((u) => u.status === "aprovado");
+  const rejeitados = users.filter((u) => u.status === "rejeitado");
 
   const aprovar = useMutation({
     mutationFn: async (user: UserRow) => {
