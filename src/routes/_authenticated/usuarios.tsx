@@ -31,7 +31,9 @@ function Usuarios() {
   const { role: myRole, user: myUser } = useAuth();
   const queryClient = useQueryClient();
   const nav = useNavigate();
-  const listUserEmailsFn = useServerFn(listUserEmails);
+  const listAllAccountsFn = useServerFn(listAllAccounts);
+  const approveUserAccountFn = useServerFn(approveUserAccount);
+  const rejectUserAccountFn = useServerFn(rejectUserAccount);
   const deleteUserAccountFn = useServerFn(deleteUserAccount);
 
 
