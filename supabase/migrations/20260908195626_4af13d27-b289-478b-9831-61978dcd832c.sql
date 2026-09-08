@@ -1,0 +1,7 @@
+ALTER TABLE public.equipamentos DROP CONSTRAINT equipamentos_created_by_fkey, ADD CONSTRAINT equipamentos_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.cautelas DROP CONSTRAINT cautelas_created_by_fkey, ADD CONSTRAINT cautelas_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.cautelas DROP CONSTRAINT cautelas_finalizada_por_fkey, ADD CONSTRAINT cautelas_finalizada_por_fkey FOREIGN KEY (finalizada_por) REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.movimentacoes DROP CONSTRAINT movimentacoes_user_id_fkey, ADD CONSTRAINT movimentacoes_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.audit_logs DROP CONSTRAINT audit_logs_user_id_fkey, ADD CONSTRAINT audit_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.contratos DROP CONSTRAINT contratos_created_by_fkey, ADD CONSTRAINT contratos_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.materiais_pef DROP CONSTRAINT materiais_pef_created_by_fkey, ADD CONSTRAINT materiais_pef_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
