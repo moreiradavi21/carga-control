@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/sismat/use-auth";
@@ -71,6 +72,13 @@ function AuthLayout() {
   const { role, fullName, status, loading } = useAuth();
   const nav = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  // Contas PEF só têm acesso à página de PEFs e DEF
+  useEffect(() => {
+    if (!loading && status === "aprovado" && role === "pef" && !pathname.startsWith("/pefs")) {
+      nav({ to: "/pefs", replace: true });
+    }
+  }, [loading, status, role, pathname, nav]);
 
   async function signOut() {
     await supabase.auth.signOut();
