@@ -25,6 +25,25 @@ function Dashboard() {
   const { role } = useAuth();
   const isTelefonista = role === "telefonista";
   const [drillSit, setDrillSit] = useState<string | null>(null);
+  const [openCautelas, setOpenCautelas] = useState(false);
+
+  // ── Cautelas ativas ─────────────────────────────────────────────
+  const { data: cautelasAtivas = [] } = useQuery({
+    queryKey: ["dash-cautelas-ativas"],
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cautelas")
+        .select("id, numero, militar_responsavel, posto_responsavel, militar_retirada, data_saida, previsao_devolucao, tipo, cautela_itens(id, devolvido)")
+        .eq("status", "ativa")
+        .order("data_saida", { ascending: false });
+      if (error) return [];
+      return data ?? [];
+    },
+  });
 
   // ── Equipamentos (stats + drill-down) ───────────────────────────
   const { data: stats = [] } = useQuery({
