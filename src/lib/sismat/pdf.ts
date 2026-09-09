@@ -70,8 +70,18 @@ export async function gerarPdfCautela(c: any) {
   doc.text(`Militar retirada: ${c.posto_retirada ?? ""} ${c.militar_retirada ?? ""}`.trim(), 14, 62);
   doc.text(`Finalidade: ${c.finalidade ?? "—"}`, 14, 69);
 
+  let topo = 76;
+  if (c.observacoes) {
+    doc.setFont("helvetica", "bold");
+    doc.text("Observações:", 14, topo);
+    doc.setFont("helvetica", "normal");
+    const obs = doc.splitTextToSize(String(c.observacoes), 180);
+    doc.text(obs, 14, topo + 5);
+    topo += 5 + obs.length * 5 + 3;
+  }
+
   autoTable(doc, {
-    startY: 76,
+    startY: topo,
     head: [["Patrimônio", "Nº Série", "Descrição", "Marca/Modelo"]],
     body: (c.cautela_itens ?? []).map((it: any) => [
       it.equipamentos?.patrimonio ?? "—",

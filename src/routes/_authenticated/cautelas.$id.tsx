@@ -44,6 +44,7 @@ function CautelaDetalhe() {
           <div><span className="text-muted-foreground">Retirada por:</span> {d.posto_retirada} {d.militar_retirada}</div>
           <div><span className="text-muted-foreground">Companhia:</span> {d.companhias?.nome ?? "—"}</div>
           <div><span className="text-muted-foreground">Finalidade:</span> {d.finalidade ?? "—"}</div>
+          <div className="md:col-span-2"><span className="text-muted-foreground">Observações:</span> {d.observacoes ?? "—"}</div>
         </CardContent>
       </Card>
 
