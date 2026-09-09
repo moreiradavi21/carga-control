@@ -25,7 +25,7 @@ function Dashboard() {
   const { role } = useAuth();
   const isTelefonista = role === "telefonista";
   const [drillSit, setDrillSit] = useState<string | null>(null);
-  const [openCautelas, setOpenCautelas] = useState(false);
+  
 
   // ── Cautelas ativas ─────────────────────────────────────────────
   const { data: cautelasAtivas = [] } = useQuery({
