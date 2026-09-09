@@ -183,6 +183,61 @@ function Dashboard() {
         ))}
       </div>
 
+      {/* Cautelas ativas */}
+      <Card className={cautelasAtivas.length > 0 ? "border-amber-400 border-2" : ""}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <ClipboardList className="h-4 w-4 text-amber-600" />
+            Cautelas ativas
+            <Badge variant="outline" className="ml-auto text-amber-700 border-amber-400">
+              {cautelasAtivas.length}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {cautelasAtivas.length === 0 ? (
+            <p className="text-sm text-muted-foreground px-6 pb-4">Nenhuma cautela ativa no momento.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nº</TableHead>
+                  <TableHead>Responsável</TableHead>
+                  <TableHead>Retirada por</TableHead>
+                  <TableHead>Saída</TableHead>
+                  <TableHead>Itens pendentes</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {cautelasAtivas.map((c: any) => {
+                  const itens = c.cautela_itens ?? [];
+                  const pendentes = itens.filter((i: any) => !i.devolvido).length;
+                  return (
+                    <TableRow key={c.id}>
+                      <TableCell className="font-mono text-xs">{c.numero}</TableCell>
+                      <TableCell className="font-medium">
+                        {[c.posto_responsavel, c.militar_responsavel].filter(Boolean).join(" ")}
+                      </TableCell>
+                      <TableCell className="text-sm">{c.militar_retirada ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{format(new Date(c.data_saida), "dd/MM/yyyy HH:mm")}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">{pendentes} de {itens.length}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Link to="/cautelas/$id" params={{ id: c.id }} className="text-xs text-primary underline">
+                          Abrir
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Modal drill-down — lista de equipamentos da situação clicada */}
       <Dialog open={!!drillSit} onOpenChange={(o) => { if (!o) setDrillSit(null); }}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
