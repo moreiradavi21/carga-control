@@ -133,7 +133,7 @@ function Dashboard() {
 
   const cardsComandante: CardDef[] = [
     { label: "Disponíveis",       value: countBy("disponivel"),      icon: CheckCircle2,  color: "text-emerald-600", sit: "disponivel"      },
-    { label: "Em cautela",        value: countBy("em_cautela"),      icon: ClipboardList, color: "text-amber-600",   sit: "em_cautela"      },
+    { label: "Em cautela",        value: cautelasAtivas.length,      icon: ClipboardList, color: "text-amber-600",   sit: "em_cautela"      },
     { label: "Cautela - Serviço", value: countBy("cautela_servico"), icon: Briefcase,     color: "text-violet-600",  sit: "cautela_servico" },
     { label: "Em manutenção",     value: countBy("em_manutencao"),   icon: Wrench,        color: "text-blue-600",    sit: "em_manutencao"   },
     { label: "Em sindicância",    value: countBy("em_sindicancia"),  icon: AlertTriangle, color: "text-orange-600",  sit: "em_sindicancia"  },
@@ -144,7 +144,7 @@ function Dashboard() {
 
   const cardsTelefonista: CardDef[] = [
     { label: "Disponíveis",       value: countBy("disponivel"),      icon: CheckCircle2,  color: "text-emerald-600", sit: "disponivel"      },
-    { label: "Em cautela",        value: countBy("em_cautela"),      icon: ClipboardList, color: "text-amber-600",   sit: "em_cautela"      },
+    { label: "Em cautela",        value: cautelasAtivas.length,      icon: ClipboardList, color: "text-amber-600",   sit: "em_cautela"      },
     { label: "Cautela - Serviço", value: countBy("cautela_servico"), icon: Briefcase,     color: "text-violet-600",  sit: "cautela_servico" },
   ];
 
