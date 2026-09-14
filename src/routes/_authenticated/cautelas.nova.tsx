@@ -171,26 +171,8 @@ function NovaCautela() {
       const { error: itErr } = await supabase.from("cautela_itens").insert(itens);
       if (itErr) throw itErr;
 
-      // Atualizar situacao do equipamento conforme tipo da cautela
-      // Se cautela_servico ainda não existir no enum do banco, usa em_cautela como fallback
-      const situacaoDestino = tipoCautela === "servico" ? "cautela_servico" : "em_cautela";
-      const { error: sitErr } = await supabase
-        .from("equipamentos")
-        .update({ situacao: situacaoDestino })
-        .in("id", selectedIds);
-      if (sitErr) {
-        // Enum cautela_servico ainda não existe — atualiza para em_cautela
-        const { error: sitFallbackErr } = await supabase
-          .from("equipamentos")
-          .update({ situacao: "em_cautela" })
-          .in("id", selectedIds);
-        if (sitFallbackErr) {
-          // Atualização falhou — cautela foi criada mas equipamentos ficaram com situacao antiga
-          toast.warning(`Cautela ${cautela.numero} criada, mas falha ao atualizar situação dos equipamentos: ${sitFallbackErr.message}`);
-        }
-      }
-
-      // Invalidar caches para refletir os novos estados na UI
+      // A situação dos equipamentos é sincronizada automaticamente no banco
+      // ao inserir os itens, inclusive para perfis sem permissão de edição direta.
       qc.invalidateQueries({ queryKey: ["equipamentos"] });
       qc.invalidateQueries({ queryKey: ["equips-disp"] });
       qc.invalidateQueries({ queryKey: ["cautelas"] });
