@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -100,7 +100,11 @@ interface GrupoData {
 
 // ── Componente principal ─────────────────────────────────────────────────────
 function ProntoReservaPage() {
-  const now = new Date();
+  const [dataCabecalho, setDataCabecalho] = useState("");
+
+  useEffect(() => {
+    setDataCabecalho(format(new Date(), "EEEE, dd 'de' MMMM 'de' yyyy '—' HH:mm", { locale: ptBR }));
+  }, []);
 
   // Campos de cabeçalho do documento
   const [ofDeDia,    setOfDeDia]    = useState("");
@@ -243,6 +247,7 @@ function ProntoReservaPage() {
 
   // ── Gerar PDF ────────────────────────────────────────────────────────────
   function gerarPDF() {
+    const now = new Date();
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const pw = doc.internal.pageSize.getWidth();
     const ph = doc.internal.pageSize.getHeight();
@@ -525,7 +530,7 @@ function ProntoReservaPage() {
         <div>
           <h2 className="text-2xl font-bold">Pronto da Reserva de Material</h2>
           <p className="text-sm text-muted-foreground">
-            {format(now, "EEEE, dd 'de' MMMM 'de' yyyy '—' HH:mm", { locale: ptBR })}
+            {dataCabecalho || "Data e hora atual"}
             {" "}&bull;{" "}Pel Com / 7º BIS
           </p>
         </div>
