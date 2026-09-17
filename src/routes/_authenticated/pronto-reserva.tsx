@@ -16,10 +16,23 @@ import {
   RefreshCw, FileText, History, AlertTriangle, CheckCircle2, Package,
   Users, MapPin, Radio, ChevronDown, ChevronUp,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-export const Route = createFileRoute("/_authenticated/pronto-reserva")({ component: ProntoReservaPage });
+export const Route = createFileRoute("/_authenticated/pronto-reserva")({
+  head: () => ({
+    meta: [
+      { title: "Pronto da Reserva — SISMAT" },
+      { name: "description", content: "Conferência da situação dos materiais da reserva do Pelotão de Comunicações." },
+      { property: "og:title", content: "Pronto da Reserva — SISMAT" },
+      { property: "og:description", content: "Conferência da situação dos materiais da reserva do Pelotão de Comunicações." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
+  component: ProntoReservaPage,
+});
 
 // ── Constantes ──────────────────────────────────────────────────────────────
 const GRUPOS = [
@@ -77,6 +90,7 @@ interface ModelData {
 interface GrupoData {
   key:     GrupoKey;
   label:   string;
+  icon:    LucideIcon;
   total:   number;
   pelotao: number;
   fora:    number;
@@ -178,7 +192,7 @@ function ProntoReservaPage() {
       acc[grupo][catId].equips.push(e);
     }
 
-    return GRUPOS.map(({ key, label }) => {
+    return GRUPOS.map(({ key, label, icon }) => {
       const models: ModelData[] = Object.entries(acc[key]).map(([catId, { catNome, equips }]) => {
         const total   = equips.length;
         const pelotao = equips.filter((e: any) => classifySit(e.situacao) === "pelotao").length;
@@ -191,7 +205,7 @@ function ProntoReservaPage() {
       const pelotao = models.reduce((s, m) => s + m.pelotao, 0);
       const fora    = models.reduce((s, m) => s + m.fora, 0);
       const baixado = models.reduce((s, m) => s + m.baixado, 0);
-      return { key, label, total, pelotao, fora, baixado, models };
+      return { key, label, icon, total, pelotao, fora, baixado, models };
     });
   }, [equipamentos]);
 
@@ -235,8 +249,8 @@ function ProntoReservaPage() {
     const margin = 12;
     let y = margin;
 
-    const VERDE_ESCURO = [22, 78, 43] as const;
-    const CINZA = [80, 80, 80] as const;
+    const VERDE_ESCURO: [number, number, number] = [22, 78, 43];
+    const CINZA: [number, number, number] = [80, 80, 80];
 
     function addPageIfNeeded(space: number) {
       if (y + space > ph - margin - 20) {
