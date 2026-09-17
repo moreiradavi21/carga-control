@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
+import { Route as AuthenticatedProntoReservaRouteImport } from './routes/_authenticated/pronto-reserva'
 import { Route as AuthenticatedPefsRouteImport } from './routes/_authenticated/pefs'
 import { Route as AuthenticatedImportarRouteImport } from './routes/_authenticated/importar'
 import { Route as AuthenticatedEquipamentosRouteImport } from './routes/_authenticated/equipamentos'
@@ -51,6 +52,12 @@ const AuthenticatedRelatoriosRoute = AuthenticatedRelatoriosRouteImport.update({
   path: '/relatorios',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedProntoReservaRoute =
+  AuthenticatedProntoReservaRouteImport.update({
+    id: '/pronto-reserva',
+    path: '/pronto-reserva',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPefsRoute = AuthenticatedPefsRouteImport.update({
   id: '/pefs',
   path: '/pefs',
@@ -131,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/equipamentos': typeof AuthenticatedEquipamentosRoute
   '/importar': typeof AuthenticatedImportarRoute
   '/pefs': typeof AuthenticatedPefsRoute
+  '/pronto-reserva': typeof AuthenticatedProntoReservaRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/cautelas/$id': typeof AuthenticatedCautelasIdRoute
@@ -149,6 +157,7 @@ export interface FileRoutesByTo {
   '/equipamentos': typeof AuthenticatedEquipamentosRoute
   '/importar': typeof AuthenticatedImportarRoute
   '/pefs': typeof AuthenticatedPefsRoute
+  '/pronto-reserva': typeof AuthenticatedProntoReservaRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/cautelas/$id': typeof AuthenticatedCautelasIdRoute
@@ -169,6 +178,7 @@ export interface FileRoutesById {
   '/_authenticated/equipamentos': typeof AuthenticatedEquipamentosRoute
   '/_authenticated/importar': typeof AuthenticatedImportarRoute
   '/_authenticated/pefs': typeof AuthenticatedPefsRoute
+  '/_authenticated/pronto-reserva': typeof AuthenticatedProntoReservaRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/cautelas/$id': typeof AuthenticatedCautelasIdRoute
@@ -189,6 +199,7 @@ export interface FileRouteTypes {
     | '/equipamentos'
     | '/importar'
     | '/pefs'
+    | '/pronto-reserva'
     | '/relatorios'
     | '/usuarios'
     | '/cautelas/$id'
@@ -207,6 +218,7 @@ export interface FileRouteTypes {
     | '/equipamentos'
     | '/importar'
     | '/pefs'
+    | '/pronto-reserva'
     | '/relatorios'
     | '/usuarios'
     | '/cautelas/$id'
@@ -226,6 +238,7 @@ export interface FileRouteTypes {
     | '/_authenticated/equipamentos'
     | '/_authenticated/importar'
     | '/_authenticated/pefs'
+    | '/_authenticated/pronto-reserva'
     | '/_authenticated/relatorios'
     | '/_authenticated/usuarios'
     | '/_authenticated/cautelas/$id'
@@ -273,6 +286,13 @@ declare module '@tanstack/react-router' {
       path: '/relatorios'
       fullPath: '/relatorios'
       preLoaderRoute: typeof AuthenticatedRelatoriosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pronto-reserva': {
+      id: '/_authenticated/pronto-reserva'
+      path: '/pronto-reserva'
+      fullPath: '/pronto-reserva'
+      preLoaderRoute: typeof AuthenticatedProntoReservaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/pefs': {
@@ -388,6 +408,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEquipamentosRoute: typeof AuthenticatedEquipamentosRoute
   AuthenticatedImportarRoute: typeof AuthenticatedImportarRoute
   AuthenticatedPefsRoute: typeof AuthenticatedPefsRoute
+  AuthenticatedProntoReservaRoute: typeof AuthenticatedProntoReservaRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
 }
@@ -403,6 +424,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEquipamentosRoute: AuthenticatedEquipamentosRoute,
   AuthenticatedImportarRoute: AuthenticatedImportarRoute,
   AuthenticatedPefsRoute: AuthenticatedPefsRoute,
+  AuthenticatedProntoReservaRoute: AuthenticatedProntoReservaRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
 }
