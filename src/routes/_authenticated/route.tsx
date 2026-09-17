@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboard, Radio, ClipboardList, FileUp, Users, FileText,
-  ShieldAlert, LogOut, Shield, Clock, Wifi, Satellite, Phone, Globe,
+  ShieldAlert, LogOut, Shield, Clock, Wifi, Satellite, Phone, Globe, BookCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -47,9 +47,10 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 const navBase = [
-  { to: "/dashboard",    label: "Dashboard",    icon: LayoutDashboard },
-  { to: "/equipamentos", label: "Equipamentos", icon: Radio },
-  { to: "/cautelas",     label: "Cautelas",     icon: ClipboardList },
+  { to: "/dashboard",      label: "Dashboard",         icon: LayoutDashboard },
+  { to: "/equipamentos",   label: "Equipamentos",      icon: Radio },
+  { to: "/cautelas",       label: "Cautelas",          icon: ClipboardList },
+  { to: "/pronto-reserva", label: "Pronto da Reserva", icon: BookCheck },
 ];
 
 const navAdmin = [
