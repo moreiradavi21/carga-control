@@ -47,9 +47,12 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 const navBase = [
-  { to: "/dashboard",      label: "Dashboard",         icon: LayoutDashboard },
-  { to: "/equipamentos",   label: "Equipamentos",      icon: Radio },
-  { to: "/cautelas",       label: "Cautelas",          icon: ClipboardList },
+  { to: "/dashboard",    label: "Dashboard",    icon: LayoutDashboard },
+  { to: "/equipamentos", label: "Equipamentos", icon: Radio },
+  { to: "/cautelas",     label: "Cautelas",     icon: ClipboardList },
+];
+
+const navComandante = [
   { to: "/pronto-reserva", label: "Pronto da Reserva", icon: BookCheck },
 ];
 
@@ -126,7 +129,9 @@ function AuthLayout() {
     );
   }
 
-  const items = role === "comandante" ? [...navBase, ...navAdmin] : navBase;
+  const items = role === "comandante"
+    ? [...navBase, ...navComandante, ...navAdmin]
+    : navBase;
 
   return (
     <SidebarProvider>
