@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -16,10 +16,23 @@ import {
   RefreshCw, FileText, History, AlertTriangle, CheckCircle2, Package,
   Users, MapPin, Radio, ChevronDown, ChevronUp,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-export const Route = createFileRoute("/_authenticated/pronto-reserva")({ component: ProntoReservaPage });
+export const Route = createFileRoute("/_authenticated/pronto-reserva")({
+  head: () => ({
+    meta: [
+      { title: "Pronto da Reserva — SISMAT" },
+      { name: "description", content: "Conferência da situação dos materiais da reserva do Pelotão de Comunicações." },
+      { property: "og:title", content: "Pronto da Reserva — SISMAT" },
+      { property: "og:description", content: "Conferência da situação dos materiais da reserva do Pelotão de Comunicações." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
+  component: ProntoReservaPage,
+});
 
 // ── Constantes ──────────────────────────────────────────────────────────────
 const GRUPOS = [
@@ -77,6 +90,7 @@ interface ModelData {
 interface GrupoData {
   key:     GrupoKey;
   label:   string;
+  icon:    LucideIcon;
   total:   number;
   pelotao: number;
   fora:    number;
@@ -86,7 +100,11 @@ interface GrupoData {
 
 // ── Componente principal ─────────────────────────────────────────────────────
 function ProntoReservaPage() {
-  const now = new Date();
+  const [dataCabecalho, setDataCabecalho] = useState("");
+
+  useEffect(() => {
+    setDataCabecalho(format(new Date(), "EEEE, dd 'de' MMMM 'de' yyyy '—' HH:mm", { locale: ptBR }));
+  }, []);
 
   // Campos de cabeçalho do documento
   const [ofDeDia,    setOfDeDia]    = useState("");
@@ -178,7 +196,7 @@ function ProntoReservaPage() {
       acc[grupo][catId].equips.push(e);
     }
 
-    return GRUPOS.map(({ key, label }) => {
+    return GRUPOS.map(({ key, label, icon }) => {
       const models: ModelData[] = Object.entries(acc[key]).map(([catId, { catNome, equips }]) => {
         const total   = equips.length;
         const pelotao = equips.filter((e: any) => classifySit(e.situacao) === "pelotao").length;
@@ -191,7 +209,7 @@ function ProntoReservaPage() {
       const pelotao = models.reduce((s, m) => s + m.pelotao, 0);
       const fora    = models.reduce((s, m) => s + m.fora, 0);
       const baixado = models.reduce((s, m) => s + m.baixado, 0);
-      return { key, label, total, pelotao, fora, baixado, models };
+      return { key, label, icon, total, pelotao, fora, baixado, models };
     });
   }, [equipamentos]);
 
@@ -229,14 +247,15 @@ function ProntoReservaPage() {
 
   // ── Gerar PDF ────────────────────────────────────────────────────────────
   function gerarPDF() {
+    const now = new Date();
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const pw = doc.internal.pageSize.getWidth();
     const ph = doc.internal.pageSize.getHeight();
     const margin = 12;
     let y = margin;
 
-    const VERDE_ESCURO = [22, 78, 43] as const;
-    const CINZA = [80, 80, 80] as const;
+    const VERDE_ESCURO: [number, number, number] = [22, 78, 43];
+    const CINZA: [number, number, number] = [80, 80, 80];
 
     function addPageIfNeeded(space: number) {
       if (y + space > ph - margin - 20) {
@@ -511,7 +530,7 @@ function ProntoReservaPage() {
         <div>
           <h2 className="text-2xl font-bold">Pronto da Reserva de Material</h2>
           <p className="text-sm text-muted-foreground">
-            {format(now, "EEEE, dd 'de' MMMM 'de' yyyy '—' HH:mm", { locale: ptBR })}
+            {dataCabecalho || "Data e hora atual"}
             {" "}&bull;{" "}Pel Com / 7º BIS
           </p>
         </div>
