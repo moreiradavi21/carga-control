@@ -25,10 +25,33 @@ function Dashboard() {
   const { role } = useAuth();
   const isTelefonista = role === "telefonista";
   const [drillSit, setDrillSit] = useState<string | null>(null);
+  
+
+  // ── Cautelas ativas ─────────────────────────────────────────────
+  const { data: cautelasAtivas = [] } = useQuery({
+    queryKey: ["dash-cautelas-ativas"],
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cautelas")
+        .select("id, numero, militar_responsavel, posto_responsavel, militar_retirada, data_saida, previsao_devolucao, tipo, cautela_itens(id, devolvido)")
+        .eq("status", "ativa")
+        .order("data_saida", { ascending: false });
+      if (error) return [];
+      return data ?? [];
+    },
+  });
 
   // ── Equipamentos (stats + drill-down) ───────────────────────────
   const { data: stats = [] } = useQuery({
     queryKey: ["dash-stats"],
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("equipamentos")
@@ -69,13 +92,9 @@ function Dashboard() {
         const { data } = await supabase
           .from("contratos")
           .select("tipo, fornecedor, data_validade")
-          .order("data_validade", { ascending: false });
+          .order("data_validade", { ascending: true });
         if (!data) return [];
-        const porTipo: Record<string, { tipo: string; fornecedor: string; data_validade: string }> = {};
-        for (const c of data) {
-          if (!porTipo[c.tipo]) porTipo[c.tipo] = c;
-        }
-        return Object.values(porTipo) as { tipo: string; fornecedor: string; data_validade: string }[];
+        return data as { tipo: string; fornecedor: string; data_validade: string }[];
       } catch { return []; }
     },
   });
@@ -83,6 +102,10 @@ function Dashboard() {
   // ── Movimentações ────────────────────────────────────────────────
   const { data: mov } = useQuery({
     queryKey: ["dash-mov"],
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000,
     queryFn: async () => {
       const { data } = await supabase
         .from("movimentacoes")
@@ -110,7 +133,7 @@ function Dashboard() {
 
   const cardsComandante: CardDef[] = [
     { label: "Disponíveis",       value: countBy("disponivel"),      icon: CheckCircle2,  color: "text-emerald-600", sit: "disponivel"      },
-    { label: "Em cautela",        value: countBy("em_cautela"),      icon: ClipboardList, color: "text-amber-600",   sit: "em_cautela"      },
+    { label: "Em cautela",        value: cautelasAtivas.length,      icon: ClipboardList, color: "text-amber-600",   sit: "em_cautela"      },
     { label: "Cautela - Serviço", value: countBy("cautela_servico"), icon: Briefcase,     color: "text-violet-600",  sit: "cautela_servico" },
     { label: "Em manutenção",     value: countBy("em_manutencao"),   icon: Wrench,        color: "text-blue-600",    sit: "em_manutencao"   },
     { label: "Em sindicância",    value: countBy("em_sindicancia"),  icon: AlertTriangle, color: "text-orange-600",  sit: "em_sindicancia"  },
@@ -121,7 +144,7 @@ function Dashboard() {
 
   const cardsTelefonista: CardDef[] = [
     { label: "Disponíveis",       value: countBy("disponivel"),      icon: CheckCircle2,  color: "text-emerald-600", sit: "disponivel"      },
-    { label: "Em cautela",        value: countBy("em_cautela"),      icon: ClipboardList, color: "text-amber-600",   sit: "em_cautela"      },
+    { label: "Em cautela",        value: cautelasAtivas.length,      icon: ClipboardList, color: "text-amber-600",   sit: "em_cautela"      },
     { label: "Cautela - Serviço", value: countBy("cautela_servico"), icon: Briefcase,     color: "text-violet-600",  sit: "cautela_servico" },
   ];
 
@@ -159,6 +182,61 @@ function Dashboard() {
           </Card>
         ))}
       </div>
+
+      {/* Cautelas ativas */}
+      <Card className={cautelasAtivas.length > 0 ? "border-amber-400 border-2" : ""}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <ClipboardList className="h-4 w-4 text-amber-600" />
+            Cautelas ativas
+            <Badge variant="outline" className="ml-auto text-amber-700 border-amber-400">
+              {cautelasAtivas.length}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {cautelasAtivas.length === 0 ? (
+            <p className="text-sm text-muted-foreground px-6 pb-4">Nenhuma cautela ativa no momento.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nº</TableHead>
+                  <TableHead>Responsável</TableHead>
+                  <TableHead>Retirada por</TableHead>
+                  <TableHead>Saída</TableHead>
+                  <TableHead>Itens pendentes</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {cautelasAtivas.map((c: any) => {
+                  const itens = c.cautela_itens ?? [];
+                  const pendentes = itens.filter((i: any) => !i.devolvido).length;
+                  return (
+                    <TableRow key={c.id}>
+                      <TableCell className="font-mono text-xs">{c.numero}</TableCell>
+                      <TableCell className="font-medium">
+                        {[c.posto_responsavel, c.militar_responsavel].filter(Boolean).join(" ")}
+                      </TableCell>
+                      <TableCell className="text-sm">{c.militar_retirada ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{format(new Date(c.data_saida), "dd/MM/yyyy HH:mm")}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">{pendentes} de {itens.length}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Link to="/cautelas/$id" params={{ id: c.id }} className="text-xs text-primary underline">
+                          Abrir
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Modal drill-down — lista de equipamentos da situação clicada */}
       <Dialog open={!!drillSit} onOpenChange={(o) => { if (!o) setDrillSit(null); }}>
@@ -212,10 +290,10 @@ function Dashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
             {CONTRATOS_CONFIG.map(({ tipo, label, icon: Icon, to }) => {
-              const c = contratos.find((x) => x.tipo === tipo);
-              if (!c) {
+              const lista = contratos.filter((x) => x.tipo === tipo);
+              if (lista.length === 0) {
                 return (
                   <Link key={tipo} to={to}>
                     <div className="border rounded-lg p-3 text-center space-y-1 hover:bg-accent transition-colors cursor-pointer">
@@ -226,21 +304,30 @@ function Dashboard() {
                   </Link>
                 );
               }
-              const dias = differenceInDays(parseISO(c.data_validade), new Date());
-              const cor = dias < 0 ? "border-red-400 bg-red-50" : dias <= 30 ? "border-red-300 bg-red-50" : dias <= 90 ? "border-amber-300 bg-amber-50" : "border-emerald-300 bg-emerald-50";
-              const textCor = dias < 0 || dias <= 30 ? "text-red-700" : dias <= 90 ? "text-amber-700" : "text-emerald-700";
               return (
-                <Link key={tipo} to={to}>
-                  <div className={`border rounded-lg p-3 text-center space-y-1 hover:opacity-80 transition-opacity cursor-pointer ${cor}`}>
-                    <Icon className={`h-5 w-5 mx-auto ${textCor}`} />
-                    <p className="text-xs font-semibold">{label}</p>
-                    <p className="text-[10px] text-muted-foreground truncate" title={c.fornecedor}>{c.fornecedor}</p>
-                    <p className={`text-[11px] font-bold ${textCor}`}>
-                      {dias < 0 ? `Vencido há ${Math.abs(dias)}d` : `${dias} dia(s)`}
-                    </p>
-                    <p className="text-[9px] text-muted-foreground">{format(parseISO(c.data_validade), "dd/MM/yyyy")}</p>
+                <div key={tipo} className="space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold">
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    {label}
+                    <Badge variant="outline" className="ml-auto text-[10px]">{lista.length}</Badge>
                   </div>
-                </Link>
+                  {lista.map((c, i) => {
+                    const dias = differenceInDays(parseISO(c.data_validade), new Date());
+                    const cor = dias < 0 ? "border-red-400 bg-red-50" : dias <= 30 ? "border-red-300 bg-red-50" : dias <= 90 ? "border-amber-300 bg-amber-50" : "border-emerald-300 bg-emerald-50";
+                    const textCor = dias < 0 || dias <= 30 ? "text-red-700" : dias <= 90 ? "text-amber-700" : "text-emerald-700";
+                    return (
+                      <Link key={`${tipo}-${i}`} to={to}>
+                        <div className={`border rounded-lg p-2.5 text-center space-y-0.5 hover:opacity-80 transition-opacity cursor-pointer ${cor}`}>
+                          <p className="text-[11px] font-medium truncate" title={c.fornecedor}>{c.fornecedor}</p>
+                          <p className={`text-[11px] font-bold ${textCor}`}>
+                            {dias < 0 ? `Vencido há ${Math.abs(dias)}d` : `${dias} dia(s)`}
+                          </p>
+                          <p className="text-[9px] text-muted-foreground">{format(parseISO(c.data_validade), "dd/MM/yyyy")}</p>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
               );
             })}
           </div>

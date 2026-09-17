@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/sismat/use-auth";
+import { PEF_UNIDADES, pefUnidadeLabel } from "@/lib/sismat/constants";
 import { differenceInDays, format, parseISO } from "date-fns";
 import {
   Calendar, Upload, CheckCircle2, Clock, AlertTriangle,
@@ -23,7 +25,16 @@ type Contrato = {
   data_inicio: string;
   data_validade: string;
   descricao_contrato?: string | null;
+  is_pef?: boolean | null;
+  pef_unidade?: string | null;
+  pef_unidades?: string[] | null;
 };
+
+export function unidadesDoContrato(c: { pef_unidades?: string[] | null; pef_unidade?: string | null }): string[] {
+  const arr = (c.pef_unidades ?? []).filter(Boolean);
+  if (arr.length > 0) return arr;
+  return c.pef_unidade ? [c.pef_unidade] : [];
+}
 
 type Pagamento = {
   id: string;
@@ -66,12 +77,18 @@ function FormContrato({
     descricao_contrato: inicial?.descricao_contrato ?? "",
     data_inicio: inicial?.data_inicio ?? "",
     data_validade: inicial?.data_validade ?? "",
+    is_pef: inicial?.is_pef ? "sim" : "nao",
+    pef_unidades: inicial ? unidadesDoContrato(inicial) : ([] as string[]),
   });
   const [saving, setSaving] = useState(false);
 
   async function salvar() {
     if (!form.fornecedor.trim() || !form.data_inicio || !form.data_validade) {
       toast.error("Preencha Fornecedor, Data de início e Data de validade.");
+      return;
+    }
+    if (form.is_pef === "sim" && form.pef_unidades.length === 0) {
+      toast.error("Selecione ao menos um PEF/DEF.");
       return;
     }
     setSaving(true);
@@ -82,7 +99,10 @@ function FormContrato({
         descricao_contrato: form.descricao_contrato.trim() || null,
         data_inicio: form.data_inicio,
         data_validade: form.data_validade,
-      };
+        is_pef: form.is_pef === "sim",
+        pef_unidade: form.is_pef === "sim" ? (form.pef_unidades[0] ?? null) : null,
+        pef_unidades: form.is_pef === "sim" ? form.pef_unidades : [],
+      } as any;
       if (inicial?.id) {
         const { error } = await supabase.from("contratos").update(payload).eq("id", inicial.id);
         if (error) throw error;
@@ -136,6 +156,48 @@ function FormContrato({
             onChange={(e) => setForm((f) => ({ ...f, data_validade: e.target.value }))}
           />
         </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">É de PEF?</Label>
+          <select
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+            value={form.is_pef}
+            onChange={(e) => setForm((f) => ({ ...f, is_pef: e.target.value }))}
+          >
+            <option value="nao">Não</option>
+            <option value="sim">Sim</option>
+          </select>
+        </div>
+        {form.is_pef === "sim" && (
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label className="text-xs">Quais PEF / DEF (pode marcar vários)</Label>
+            <div className="flex flex-wrap gap-2">
+              {PEF_UNIDADES.map((u) => {
+                const ativo = form.pef_unidades.includes(u.value);
+                return (
+                  <button
+                    type="button"
+                    key={u.value}
+                    onClick={() =>
+                      setForm((f) => ({
+                        ...f,
+                        pef_unidades: ativo
+                          ? f.pef_unidades.filter((x) => x !== u.value)
+                          : [...f.pef_unidades, u.value],
+                      }))
+                    }
+                    className={`text-xs font-semibold px-2.5 py-1 rounded-full border transition-colors ${
+                      ativo
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-transparent text-muted-foreground border-input hover:bg-muted"
+                    }`}
+                  >
+                    {u.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
       <div className="flex gap-2">
         <Button size="sm" onClick={salvar} disabled={saving}>
@@ -151,6 +213,8 @@ function FormContrato({
 // ─── Tracker de pagamentos anuais de um contrato ────────────────────────────
 function PagamentosAnuais({ contrato }: { contrato: Contrato }) {
   const qc = useQueryClient();
+  const { role } = useAuth();
+  const readOnly = role !== "comandante" && role !== "adjunto";
   const [uploading, setUploading] = useState<number | null>(null);
 
   const startYear = parseISO(contrato.data_inicio).getFullYear();
@@ -198,15 +262,12 @@ function PagamentosAnuais({ contrato }: { contrato: Contrato }) {
     setUploading(ano);
     try {
       const path = `${contrato.tipo}/${contrato.id}/${ano}/${file.name}`;
-      let arquivo_url: string | null = null;
       const { error: upErr } = await supabase.storage
         .from("contratos-pagamentos")
-        .upload(path, file, { upsert: true });
-      if (!upErr) {
-        arquivo_url = supabase.storage.from("contratos-pagamentos").getPublicUrl(path).data.publicUrl;
-      }
+        .upload(path, file, { upsert: true, contentType: file.type || undefined });
+      if (upErr) throw upErr;
       const pag = pagDoAno(ano);
-      const payload = { arquivo_nome: file.name, arquivo_url, pago: true };
+      const payload = { arquivo_nome: file.name, arquivo_url: path, pago: true };
       if (pag) {
         await supabase.from("pagamentos_contrato").update(payload).eq("id", pag.id);
       } else {
@@ -214,10 +275,7 @@ function PagamentosAnuais({ contrato }: { contrato: Contrato }) {
           contrato_id: contrato.id, ano, mes: MES_ANUAL, ...payload,
         });
       }
-      toast.success(upErr
-        ? `Pagamento de ${ano} registrado (arquivo não salvo na nuvem).`
-        : `Arquivo "${file.name}" enviado para ${ano}.`
-      );
+      toast.success(`Arquivo "${file.name}" enviado para ${ano}.`);
       qc.invalidateQueries({ queryKey: ["pagamentos-anuais", contrato.id] });
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao enviar arquivo.");
@@ -226,8 +284,29 @@ function PagamentosAnuais({ contrato }: { contrato: Contrato }) {
     }
   }
 
+  async function abrirArquivo(pag: Pagamento, download = false) {
+    if (!pag.arquivo_url) return;
+    try {
+      // Compatibilidade: registros antigos podem ter URL pública completa
+      if (pag.arquivo_url.startsWith("http")) {
+        window.open(pag.arquivo_url, "_blank", "noopener");
+        return;
+      }
+      const { data, error } = await supabase.storage
+        .from("contratos-pagamentos")
+        .createSignedUrl(pag.arquivo_url, 60 * 60, download ? { download: pag.arquivo_nome ?? true } : undefined);
+      if (error || !data?.signedUrl) throw error ?? new Error("Não foi possível gerar o link.");
+      window.open(data.signedUrl, "_blank", "noopener");
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao abrir o arquivo.");
+    }
+  }
+
   async function removerArquivo(pag: Pagamento) {
     try {
+      if (pag.arquivo_url && !pag.arquivo_url.startsWith("http")) {
+        await supabase.storage.from("contratos-pagamentos").remove([pag.arquivo_url]);
+      }
       await supabase.from("pagamentos_contrato").update({
         arquivo_nome: null,
         arquivo_url: null,
@@ -298,15 +377,24 @@ function PagamentosAnuais({ contrato }: { contrato: Contrato }) {
                           </button>
                         </div>
                         {pag.arquivo_url ? (
-                          <a
-                            href={pag.arquivo_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
-                          >
-                            <ExternalLink className="h-3 w-3" />
-                            Visualizar arquivo
-                          </a>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => abrirArquivo(pag)}
+                              className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              Visualizar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => abrirArquivo(pag, true)}
+                              className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                            >
+                              <Upload className="h-3 w-3 rotate-180" />
+                              Baixar
+                            </button>
+                          </div>
                         ) : (
                           <span className="text-[11px] text-muted-foreground italic">
                             Arquivo salvo localmente (sem URL)
@@ -319,15 +407,16 @@ function PagamentosAnuais({ contrato }: { contrato: Contrato }) {
                   </td>
                   <td className="py-2">
                     <div className="flex justify-end items-center gap-1.5">
-                      <Button
+                      {!readOnly && <Button
                         variant={isPago ? "outline" : "default"}
                         size="sm"
                         className="h-7 text-xs px-2.5"
                         onClick={() => togglePago(ano)}
                       >
                         {isPago ? "✓ Pago" : "Marcar pago"}
-                      </Button>
-                      <label className={`inline-flex items-center gap-1 h-7 px-2.5 text-xs border rounded-md cursor-pointer transition-colors hover:bg-accent ${uploading === ano ? "opacity-50 cursor-not-allowed" : ""}`}>
+                      </Button>}
+                      {readOnly && <span className="text-xs text-muted-foreground">{isPago ? "✓ Pago" : "—"}</span>}
+                      {!readOnly && <label className={`inline-flex items-center gap-1 h-7 px-2.5 text-xs border rounded-md cursor-pointer transition-colors hover:bg-accent ${uploading === ano ? "opacity-50 cursor-not-allowed" : ""}`}>
                         <input
                           type="file"
                           accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
@@ -341,7 +430,7 @@ function PagamentosAnuais({ contrato }: { contrato: Contrato }) {
                         />
                         <Upload className="h-3 w-3" />
                         {uploading === ano ? "..." : "Arquivo"}
-                      </label>
+                      </label>}
                     </div>
                   </td>
                 </tr>
@@ -368,6 +457,8 @@ function ContratoCard({
 }) {
   const [expandido, setExpandido] = useState(false);
   const [editando, setEditando] = useState(false);
+  const { role } = useAuth();
+  const readOnly = role !== "comandante" && role !== "adjunto";
 
   const dias = diasRestantesContrato(contrato.data_validade);
   const badge = badgeVencimento(dias);
@@ -411,6 +502,15 @@ function ContratoCard({
             {contrato.descricao_contrato && (
               <p className="text-xs text-muted-foreground">{contrato.descricao_contrato}</p>
             )}
+            {contrato.is_pef && (
+              <span className="inline-flex flex-wrap gap-1 mt-0.5">
+                {unidadesDoContrato(contrato).map((u) => (
+                  <span key={u} className="text-[10px] font-semibold px-1.5 py-0.5 rounded border border-primary/30 bg-primary/10 text-primary">
+                    {pefUnidadeLabel(u)}
+                  </span>
+                ))}
+              </span>
+            )}
             <p className="text-xs text-muted-foreground mt-0.5">
               {format(parseISO(contrato.data_inicio), "dd/MM/yyyy")} →{" "}
               <span className={dias <= 30 ? "text-red-600 font-medium" : dias <= 90 ? "text-amber-600 font-medium" : ""}>
@@ -423,7 +523,7 @@ function ContratoCard({
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${badge.className} hidden sm:inline-flex`}>
             {badge.label}
           </span>
-          <Button
+          {!readOnly && <Button
             variant="ghost"
             size="icon"
             className="h-7 w-7"
@@ -431,8 +531,8 @@ function ContratoCard({
             title="Editar"
           >
             <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <Button
+          </Button>}
+          {role === "comandante" && <Button
             variant="ghost"
             size="icon"
             className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
@@ -440,7 +540,7 @@ function ContratoCard({
             title="Excluir"
           >
             <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+          </Button>}
           {expandido
             ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
             : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
@@ -467,6 +567,8 @@ function ContratoCard({
 // ─── Página principal ────────────────────────────────────────────────────────
 export function ContratoPage({ tipo, label }: { tipo: string; label: string }) {
   const qc = useQueryClient();
+  const { role } = useAuth();
+  const readOnly = role !== "comandante" && role !== "adjunto";
   const [showForm, setShowForm] = useState(false);
 
   const { data: contratos = [], isLoading } = useQuery({
@@ -499,10 +601,10 @@ export function ContratoPage({ tipo, label }: { tipo: string; label: string }) {
             {contratos.length} contrato(s) cadastrado(s)
           </p>
         </div>
-        <Button onClick={() => setShowForm((v) => !v)}>
+        {!readOnly && <Button onClick={() => setShowForm((v) => !v)}>
           {showForm ? <X className="h-4 w-4 mr-1" /> : <Plus className="h-4 w-4 mr-1" />}
           {showForm ? "Cancelar" : "Novo contrato"}
-        </Button>
+        </Button>}
       </div>
 
       {/* Formulário de novo contrato */}

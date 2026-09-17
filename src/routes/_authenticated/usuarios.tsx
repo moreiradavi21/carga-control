@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/sismat/use-auth";
-import { MASTER_EMAIL } from "@/lib/sismat/constants";
+import { MASTER_EMAIL, roleLabel } from "@/lib/sismat/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,9 @@ import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Check, X, Trash2, Clock, ShieldCheck, ShieldAlert } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { listAllAccounts, approveUserAccount, rejectUserAccount, deleteUserAccount } from "@/lib/admin-users.functions";
+
 
 export const Route = createFileRoute("/_authenticated/usuarios")({ component: Usuarios });
 
@@ -28,90 +31,89 @@ function Usuarios() {
   const { role: myRole, user: myUser } = useAuth();
   const queryClient = useQueryClient();
   const nav = useNavigate();
+  const listAllAccountsFn = useServerFn(listAllAccounts);
+  const approveUserAccountFn = useServerFn(approveUserAccount);
+  const rejectUserAccountFn = useServerFn(rejectUserAccount);
+  const deleteUserAccountFn = useServerFn(deleteUserAccount);
 
-  if (myRole && myRole !== "comandante") {
+
+  if (myRole && myRole !== "comandante" && myRole !== "quarta_secao" && myRole !== "adjunto") {
     nav({ to: "/dashboard" });
     return null;
   }
+  const readOnly = myRole !== "comandante";
 
   const { data: users = [], isLoading } = useQuery({
-    queryKey: ["usuarios"],
+    queryKey: ["usuarios", myRole],
+    enabled: !!myRole,
     queryFn: async () => {
-      const [{ data: profiles }, { data: roles }, { data: authUsers }] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, posto_graduacao, status, requested_role, created_at").order("created_at", { ascending: false }),
-        supabase.from("user_roles").select("user_id, role"),
-        // Buscar e-mails via auth (apenas disponível com service role; fallback gracioso)
-        supabase.auth.admin?.listUsers().catch(() => ({ data: { users: [] } })),
-      ]);
+      if (myRole === "comandante") {
+        const all = await listAllAccountsFn();
+        return (all as any[]).filter(
+          (u) => u.email !== MASTER_EMAIL && u.id !== myUser?.id,
+        ) as UserRow[];
+      }
 
-      const authList = (authUsers as any)?.data?.users ?? [];
+      const [{ data: profiles }, { data: roles }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id, full_name, posto_graduacao, status, requested_role, created_at")
+          .order("created_at", { ascending: false }),
+        supabase.from("user_roles").select("user_id, role"),
+      ]);
 
       return (profiles ?? [])
         .map((p: any) => ({
           ...p,
           role: roles?.find((r: any) => r.user_id === p.id)?.role ?? null,
-          email: authList.find((u: any) => u.id === p.id)?.email ?? null,
         }))
-        // Ocultar a conta mestre da listagem (ela gerencia, não precisa aparecer)
-        .filter((u: any) => u.email !== MASTER_EMAIL && u.id !== myUser?.id) as UserRow[];
+        .filter((u: any) => u.id !== myUser?.id) as UserRow[];
     },
   });
 
+
   const pendentes = users.filter((u) => u.status === "pendente");
   const ativos = users.filter((u) => u.status === "aprovado");
+  const rejeitados = users.filter((u) => u.status === "rejeitado");
 
   const aprovar = useMutation({
     mutationFn: async (user: UserRow) => {
-      const { error: e1 } = await supabase
-        .from("profiles")
-        .update({ status: "aprovado" })
-        .eq("id", user.id);
-      if (e1) throw e1;
-
-      const { data: existingRole } = await supabase
-        .from("user_roles")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!existingRole) {
-        const role = (user.requested_role === "comandante" ? "comandante" : "telefonista") as "comandante" | "telefonista";
-        const { error: e2 } = await supabase.from("user_roles").insert({ user_id: user.id, role });
-        if (e2) throw e2;
-      }
+      await approveUserAccountFn({
+        data: {
+          userId: user.id,
+          role: user.requested_role,
+          pefUnidade: (user as any).pef_unidade ?? null,
+        },
+      });
     },
     onSuccess: () => {
       toast.success("Usuário aprovado com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["usuarios"] });
     },
-    onError: () => toast.error("Erro ao aprovar usuário."),
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao aprovar usuário."),
   });
 
   const rejeitar = useMutation({
     mutationFn: async (userId: string) => {
-      const { error } = await supabase.from("profiles").update({ status: "rejeitado" }).eq("id", userId);
-      if (error) throw error;
-      await supabase.from("user_roles").delete().eq("user_id", userId);
+      await rejectUserAccountFn({ data: { userId } });
     },
     onSuccess: () => {
-      toast.success("Cadastro rejeitado.");
+      toast.success("Cadastro rejeitado e e-mail liberado para novo cadastro.");
       queryClient.invalidateQueries({ queryKey: ["usuarios"] });
     },
-    onError: () => toast.error("Erro ao rejeitar cadastro."),
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao rejeitar cadastro."),
   });
-
   const excluir = useMutation({
     mutationFn: async (userId: string) => {
-      await supabase.from("user_roles").delete().eq("user_id", userId);
-      const { error } = await supabase.from("profiles").delete().eq("id", userId);
-      if (error) throw error;
+      await deleteUserAccountFn({ data: { userId } });
     },
     onSuccess: () => {
-      toast.success("Usuário excluído.");
+      toast.success("Conta excluída — o acesso foi revogado.");
       queryClient.invalidateQueries({ queryKey: ["usuarios"] });
     },
-    onError: () => toast.error("Erro ao excluir usuário."),
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao excluir usuário."),
   });
+
 
   if (isLoading) {
     return <div className="text-muted-foreground text-sm">Carregando usuários...</div>;
@@ -146,14 +148,18 @@ function Usuarios() {
               <TableBody>
                 {pendentes.map((u) => (
                   <TableRow key={u.id}>
-                    <TableCell className="font-medium">{u.full_name}</TableCell>
+                    <TableCell className="font-medium">
+                      {u.full_name}
+                      {u.email && <div className="text-xs font-normal text-muted-foreground">{u.email}</div>}
+                    </TableCell>
                     <TableCell className="text-sm">{u.posto_graduacao ?? "—"}</TableCell>
                     <TableCell>
-                      <Badge variant={u.requested_role === "comandante" ? "default" : "secondary"} className="capitalize">
-                        {u.requested_role === "comandante" ? "Cmt Pel" : "Telefonista"}
+                      <Badge variant={u.requested_role === "comandante" ? "default" : "secondary"}>
+                        {roleLabel(u.requested_role)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
+                      {readOnly ? <span className="text-xs text-muted-foreground">Somente leitura</span> : (
                       <div className="flex justify-end gap-2">
                         <Button
                           size="sm"
@@ -174,6 +180,7 @@ function Usuarios() {
                           Rejeitar
                         </Button>
                       </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -211,14 +218,18 @@ function Usuarios() {
               )}
               {ativos.map((u) => (
                 <TableRow key={u.id}>
-                  <TableCell className="font-medium">{u.full_name}</TableCell>
+                  <TableCell className="font-medium">
+                    {u.full_name}
+                    {u.email && <div className="text-xs font-normal text-muted-foreground">{u.email}</div>}
+                  </TableCell>
                   <TableCell className="text-sm">{u.posto_graduacao ?? "—"}</TableCell>
                   <TableCell>
-                    <Badge variant={u.role === "comandante" ? "default" : "secondary"} className="capitalize">
-                      {u.role === "comandante" ? "Cmt Pel" : "Telefonista"}
+                    <Badge variant={u.role === "comandante" ? "default" : "secondary"}>
+                      {roleLabel(u.role)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
+                    {readOnly ? <span className="text-xs text-muted-foreground">Somente leitura</span> : (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button size="sm" variant="destructive">
@@ -244,6 +255,7 @@ function Usuarios() {
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -251,6 +263,57 @@ function Usuarios() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Contas rejeitadas anteriormente (login ainda existe) */}
+      {rejeitados.length > 0 && (
+        <Card className="border-destructive/40 border">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ShieldAlert className="h-4 w-4 text-destructive" />
+              Contas rejeitadas ({rejeitados.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <p className="px-6 pb-3 text-xs text-muted-foreground">
+              Estas contas foram rejeitadas mas o login ainda existe, por isso o e-mail aparece como "já cadastrado". Exclua para liberar o e-mail.
+            </p>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Posto/Grad.</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rejeitados.map((u) => (
+                  <TableRow key={u.id}>
+                    <TableCell className="font-medium">
+                      {u.full_name}
+                      {u.email && <div className="text-xs font-normal text-muted-foreground">{u.email}</div>}
+                    </TableCell>
+                    <TableCell className="text-sm">{u.posto_graduacao ?? "—"}</TableCell>
+                    <TableCell className="text-right">
+                      {readOnly ? <span className="text-xs text-muted-foreground">Somente leitura</span> : (
+                        <div className="flex justify-end gap-2">
+                          <Button size="sm" variant="outline" onClick={() => aprovar.mutate(u)} disabled={aprovar.isPending}>
+                            <Check className="h-4 w-4 mr-1" />
+                            Aprovar
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => excluir.mutate(u.id)} disabled={excluir.isPending}>
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Excluir login
+                          </Button>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Aviso sobre conta mestre */}
       <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md p-3">

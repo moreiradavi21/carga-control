@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -31,7 +31,30 @@ export function EquipamentoDialog({ open, onOpenChange, equipamento, categorias 
   open: boolean; onOpenChange: (v: boolean) => void; equipamento: any; categorias: any[];
 }) {
   const qc = useQueryClient();
+  const [novaCat, setNovaCat] = useState(false);
+  const [novoNome, setNovoNome] = useState("");
+  const [salvandoCat, setSalvandoCat] = useState(false);
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { situacao: "disponivel" } as any });
+
+  async function criarCategoria() {
+    const nome = novoNome.trim();
+    if (nome.length < 2) return toast.error("Informe o nome da categoria");
+    setSalvandoCat(true);
+    const existente = categorias.find((c) => String(c.nome).toLowerCase() === nome.toLowerCase());
+    if (existente) {
+      form.setValue("categoria_id", existente.id);
+      setSalvandoCat(false); setNovaCat(false); setNovoNome("");
+      return;
+    }
+    const { data, error } = await supabase.from("categorias").insert({ nome }).select("id").single();
+    setSalvandoCat(false);
+    if (error) return toast.error(error.message);
+    form.setValue("categoria_id", data.id);
+    setNovaCat(false); setNovoNome("");
+    qc.invalidateQueries({ queryKey: ["categorias"] });
+    toast.success("Categoria criada");
+  }
+
 
   useEffect(() => {
     if (equipamento) {
@@ -83,13 +106,32 @@ export function EquipamentoDialog({ open, onOpenChange, equipamento, categorias 
           <div className="space-y-1"><Label>Nº Série</Label><Input {...form.register("numero_serie")} /></div>
           <div className="col-span-2 space-y-1"><Label>Descrição *</Label><Input {...form.register("descricao")} /></div>
           <div className="space-y-1"><Label>Categoria</Label>
-            <Select value={form.watch("categoria_id") || ""} onValueChange={(v)=>form.setValue("categoria_id", v)}>
-              <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
-              <SelectContent className="max-h-72">
-                {categorias.map((c) => <SelectItem key={c.id} value={c.id}>{c.parent_id ? "— " : ""}{c.nome}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            {novaCat ? (
+              <div className="flex gap-2">
+                <Input
+                  autoFocus
+                  placeholder="Nome da nova categoria"
+                  value={novoNome}
+                  onChange={(e) => setNovoNome(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); criarCategoria(); } }}
+                />
+                <Button type="button" size="sm" onClick={criarCategoria} disabled={salvandoCat}>Criar</Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => { setNovaCat(false); setNovoNome(""); }}>Cancelar</Button>
+              </div>
+            ) : (
+              <Select
+                value={form.watch("categoria_id") || ""}
+                onValueChange={(v) => { if (v === "__nova__") { setNovaCat(true); return; } form.setValue("categoria_id", v); }}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
+                <SelectContent className="max-h-72">
+                  <SelectItem value="__nova__">+ Criar nova categoria</SelectItem>
+                  {categorias.map((c) => <SelectItem key={c.id} value={c.id}>{c.parent_id ? "— " : ""}{c.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
           </div>
+
           <div className="space-y-1"><Label>Situação</Label>
             <Select value={form.watch("situacao")} onValueChange={(v: any)=>form.setValue("situacao", v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>

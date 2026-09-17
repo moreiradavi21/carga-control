@@ -101,9 +101,9 @@ function CautelasPage() {
             <h2 className="text-2xl font-bold">Cautelas</h2>
             <p className="text-sm text-muted-foreground">{cautelas.length} cautela(s) registrada(s)</p>
           </div>
-          <Button asChild>
+          {role !== "quarta_secao" && <Button asChild>
             <Link to="/cautelas/nova"><Plus className="h-4 w-4" /> Nova cautela</Link>
-          </Button>
+          </Button>}
         </div>
 
         <Tabs defaultValue="ativas">
@@ -161,7 +161,7 @@ function CautelasPage() {
                               </Link>
                             </Button>
 
-                            <Button
+                            {role !== "quarta_secao" && <Button
                               variant="outline"
                               size="sm"
                               className="gap-1.5 text-xs h-8"
@@ -169,7 +169,7 @@ function CautelasPage() {
                             >
                               <RotateCcw className="h-3.5 w-3.5" />
                               Descautelar
-                            </Button>
+                            </Button>}
 
                             {role === "comandante" && (
                               <Button

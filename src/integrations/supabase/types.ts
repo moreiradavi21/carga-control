@@ -140,11 +140,15 @@ export type Database = {
           companhia_id: string
           created_at: string
           created_by: string | null
+          data_descautela: string | null
           data_saida: string
+          descautelado_por: string | null
+          descricao_alteracoes: string | null
           finalidade: string | null
           finalizada_em: string | null
           finalizada_por: string | null
           id: string
+          imagem_alteracao_url: string | null
           militar_responsavel: string
           militar_retirada: string
           numero: string
@@ -152,7 +156,10 @@ export type Database = {
           posto_responsavel: string | null
           posto_retirada: string | null
           previsao_devolucao: string | null
+          quem_descautelou: string | null
+          situacao_devolucao: string | null
           status: Database["public"]["Enums"]["status_cautela"]
+          tipo: string
           updated_at: string
         }
         Insert: {
@@ -161,11 +168,15 @@ export type Database = {
           companhia_id: string
           created_at?: string
           created_by?: string | null
+          data_descautela?: string | null
           data_saida?: string
+          descautelado_por?: string | null
+          descricao_alteracoes?: string | null
           finalidade?: string | null
           finalizada_em?: string | null
           finalizada_por?: string | null
           id?: string
+          imagem_alteracao_url?: string | null
           militar_responsavel: string
           militar_retirada: string
           numero: string
@@ -173,7 +184,10 @@ export type Database = {
           posto_responsavel?: string | null
           posto_retirada?: string | null
           previsao_devolucao?: string | null
+          quem_descautelou?: string | null
+          situacao_devolucao?: string | null
           status?: Database["public"]["Enums"]["status_cautela"]
+          tipo?: string
           updated_at?: string
         }
         Update: {
@@ -182,11 +196,15 @@ export type Database = {
           companhia_id?: string
           created_at?: string
           created_by?: string | null
+          data_descautela?: string | null
           data_saida?: string
+          descautelado_por?: string | null
+          descricao_alteracoes?: string | null
           finalidade?: string | null
           finalizada_em?: string | null
           finalizada_por?: string | null
           id?: string
+          imagem_alteracao_url?: string | null
           militar_responsavel?: string
           militar_retirada?: string
           numero?: string
@@ -194,7 +212,10 @@ export type Database = {
           posto_responsavel?: string | null
           posto_retirada?: string | null
           previsao_devolucao?: string | null
+          quem_descautelou?: string | null
+          situacao_devolucao?: string | null
           status?: Database["public"]["Enums"]["status_cautela"]
+          tipo?: string
           updated_at?: string
         }
         Relationships: [
@@ -231,8 +252,12 @@ export type Database = {
           created_by: string | null
           data_inicio: string
           data_validade: string
+          descricao_contrato: string | null
           fornecedor: string
           id: string
+          is_pef: boolean
+          pef_unidade: string | null
+          pef_unidades: string[]
           tipo: string
           updated_at: string
         }
@@ -241,8 +266,12 @@ export type Database = {
           created_by?: string | null
           data_inicio: string
           data_validade: string
+          descricao_contrato?: string | null
           fornecedor: string
           id?: string
+          is_pef?: boolean
+          pef_unidade?: string | null
+          pef_unidades?: string[]
           tipo: string
           updated_at?: string
         }
@@ -251,8 +280,12 @@ export type Database = {
           created_by?: string | null
           data_inicio?: string
           data_validade?: string
+          descricao_contrato?: string | null
           fornecedor?: string
           id?: string
+          is_pef?: boolean
+          pef_unidade?: string | null
+          pef_unidades?: string[]
           tipo?: string
           updated_at?: string
         }
@@ -265,6 +298,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           descricao: string
+          descricao_alteracoes_devolucao: string | null
+          devolvido_com_alteracoes: boolean
           foto_url: string | null
           id: string
           localizacao: string | null
@@ -283,6 +318,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descricao: string
+          descricao_alteracoes_devolucao?: string | null
+          devolvido_com_alteracoes?: boolean
           foto_url?: string | null
           id?: string
           localizacao?: string | null
@@ -301,6 +338,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descricao?: string
+          descricao_alteracoes_devolucao?: string | null
+          devolvido_com_alteracoes?: boolean
           foto_url?: string | null
           id?: string
           localizacao?: string | null
@@ -322,6 +361,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      materiais_pef: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          descricao: string
+          id: string
+          localizacao: string | null
+          marca: string | null
+          modelo: string | null
+          numero_serie: string | null
+          observacoes: string | null
+          patrimonio: string | null
+          situacao: string
+          tipo_material: string
+          unidade: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          descricao: string
+          id?: string
+          localizacao?: string | null
+          marca?: string | null
+          modelo?: string | null
+          numero_serie?: string | null
+          observacoes?: string | null
+          patrimonio?: string | null
+          situacao?: string
+          tipo_material?: string
+          unidade: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          descricao?: string
+          id?: string
+          localizacao?: string | null
+          marca?: string | null
+          modelo?: string | null
+          numero_serie?: string | null
+          observacoes?: string | null
+          patrimonio?: string | null
+          situacao?: string
+          tipo_material?: string
+          unidade?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       movimentacoes: {
         Row: {
@@ -438,6 +528,7 @@ export type Database = {
           created_at: string
           full_name: string
           id: string
+          pef_unidade: string | null
           posto_graduacao: string | null
           requested_role: string
           status: string
@@ -447,6 +538,7 @@ export type Database = {
           created_at?: string
           full_name: string
           id: string
+          pef_unidade?: string | null
           posto_graduacao?: string | null
           requested_role?: string
           status?: string
@@ -456,6 +548,7 @@ export type Database = {
           created_at?: string
           full_name?: string
           id?: string
+          pef_unidade?: string | null
           posto_graduacao?: string | null
           requested_role?: string
           status?: string
@@ -502,9 +595,16 @@ export type Database = {
         Returns: boolean
       }
       is_comandante: { Args: { _user_id: string }; Returns: boolean }
+      is_quarta_secao: { Args: { _user_id: string }; Returns: boolean }
+      pef_unidade_do: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
-      app_role: "comandante" | "telefonista"
+      app_role:
+        | "comandante"
+        | "telefonista"
+        | "quarta_secao"
+        | "pef"
+        | "adjunto"
       situacao_equipamento:
         | "disponivel"
         | "em_cautela"
@@ -512,6 +612,8 @@ export type Database = {
         | "em_sindicancia"
         | "baixado"
         | "em_manutencao"
+        | "cautela_servico"
+        | "descarga"
       status_cautela: "ativa" | "finalizada" | "cancelada"
     }
     CompositeTypes: {
@@ -528,12 +630,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -557,11 +659,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -582,11 +684,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -607,11 +709,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -624,11 +726,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -640,7 +742,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["comandante", "telefonista"],
+      app_role: ["comandante", "telefonista", "quarta_secao", "pef", "adjunto"],
       situacao_equipamento: [
         "disponivel",
         "em_cautela",
@@ -648,6 +750,8 @@ export const Constants = {
         "em_sindicancia",
         "baixado",
         "em_manutencao",
+        "cautela_servico",
+        "descarga",
       ],
       status_cautela: ["ativa", "finalizada", "cancelada"],
     },

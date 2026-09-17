@@ -1,0 +1,2 @@
+ALTER TABLE public.contratos ADD COLUMN IF NOT EXISTS pef_unidades text[] NOT NULL DEFAULT '{}';
+UPDATE public.contratos SET pef_unidades = ARRAY[pef_unidade] WHERE is_pef = true AND pef_unidade IS NOT NULL AND (pef_unidades IS NULL OR cardinality(pef_unidades) = 0);
