@@ -11,7 +11,7 @@ import { SITUACOES, situacaoLabel, situacaoColor } from "@/lib/sismat/constants"
 import {
   CheckCircle2, AlertTriangle, Wrench, PackageX, Package,
   ClipboardList, ArrowRightLeft, FileText, Wifi, Satellite,
-  Phone, Globe, Briefcase, Archive,
+  Phone, Globe, Briefcase, Archive, ShieldAlert, XCircle,
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { formatDistanceToNow, differenceInDays, parseISO, format } from "date-fns";
@@ -25,7 +25,8 @@ function Dashboard() {
   const { role } = useAuth();
   const isTelefonista = role === "telefonista";
   const [drillSit, setDrillSit] = useState<string | null>(null);
-  
+  const [pendenciasOpen, setPendenciasOpen] = useState(false);
+
 
   // ── Cautelas ativas ─────────────────────────────────────────────
   const { data: cautelasAtivas = [] } = useQuery({
@@ -116,6 +117,19 @@ function Dashboard() {
     },
   });
 
+  // ── Pendências da carga ─────────────────────────────────────────
+  const { data: integridade = null } = useQuery({
+    queryKey: ["dash-integridade"],
+    enabled: !isTelefonista,
+    staleTime: 60000,
+    queryFn: async () => {
+      try {
+        const { data } = await supabase.rpc("verificar_integridade_carga");
+        return data as any;
+      } catch { return null; }
+    },
+  });
+
   // ── Helpers de contagem ──────────────────────────────────────────
   const countBy = (sit: string) => stats.filter((e: any) => e.situacao === sit).length;
   const total = stats.length;
@@ -157,6 +171,86 @@ function Dashboard() {
 
   // Contagem de equipamentos em serviço 7º BIS (derivada de stats)
   const countServico = stats.filter((e: any) => e.situacao === "cautela_servico").length;
+
+  // ── Pendências calculadas no frontend ────────────────────────────
+  interface Pendencia {
+    tipo: "critica" | "atencao";
+    icone: "extraviado" | "sindicancia" | "sem_patrimonio" | "sem_serie" | "sem_categoria" | "db";
+    titulo: string;
+    descricao: string;
+    count?: number;
+    items?: any[];
+  }
+
+  const pendencias: Pendencia[] = [];
+
+  const extraviados = stats.filter((e: any) => e.situacao === "extraviado");
+  if (extraviados.length > 0) pendencias.push({
+    tipo: "critica", icone: "extraviado",
+    titulo: `${extraviados.length} equipamento(s) extraviado(s)`,
+    descricao: "Material sem localização conhecida. Verificar imediatamente.",
+    count: extraviados.length, items: extraviados,
+  });
+
+  const sindicancia = stats.filter((e: any) => e.situacao === "em_sindicancia");
+  if (sindicancia.length > 0) pendencias.push({
+    tipo: "critica", icone: "sindicancia",
+    titulo: `${sindicancia.length} equipamento(s) em sindicância`,
+    descricao: "Sindicância em andamento. Acompanhar o processo administrativo.",
+    count: sindicancia.length, items: sindicancia,
+  });
+
+  const semPatrimonio = stats.filter((e: any) => !e.patrimonio);
+  if (semPatrimonio.length > 0) pendencias.push({
+    tipo: "atencao", icone: "sem_patrimonio",
+    titulo: `${semPatrimonio.length} equipamento(s) sem patrimônio`,
+    descricao: "Cadastrar número de patrimônio para rastreabilidade da carga.",
+    count: semPatrimonio.length, items: semPatrimonio,
+  });
+
+  const semSerie = stats.filter((e: any) => !e.numero_serie);
+  if (semSerie.length > 0) pendencias.push({
+    tipo: "atencao", icone: "sem_serie",
+    titulo: `${semSerie.length} equipamento(s) sem número de série`,
+    descricao: "Número de série é importante para identificação individual do material.",
+    count: semSerie.length, items: semSerie,
+  });
+
+  const semCategoria = stats.filter((e: any) => !e.categoria_id);
+  if (semCategoria.length > 0) pendencias.push({
+    tipo: "atencao", icone: "sem_categoria",
+    titulo: `${semCategoria.length} equipamento(s) sem categoria`,
+    descricao: "Classificar o material para melhor organização do Pronto da Reserva.",
+    count: semCategoria.length, items: semCategoria,
+  });
+
+  // Pendências vindas do RPC verificar_integridade_carga
+  if (integridade && Array.isArray(integridade)) {
+    integridade.forEach((p: any) => {
+      pendencias.push({
+        tipo: p.severidade === "critica" ? "critica" : "atencao",
+        icone: "db",
+        titulo: p.titulo ?? p.descricao ?? "Inconsistência detectada",
+        descricao: p.detalhes ?? p.descricao ?? "",
+        count: p.quantidade,
+      });
+    });
+  } else if (integridade && typeof integridade === "object") {
+    // Caso o RPC retorne um objeto com chaves
+    Object.entries(integridade).forEach(([, val]: [string, any]) => {
+      if (Array.isArray(val) && val.length > 0) {
+        pendencias.push({
+          tipo: "atencao", icone: "db",
+          titulo: `${val.length} inconsistência(s) detectada(s) pelo sistema`,
+          descricao: "Execute a verificação de integridade para detalhes.",
+          count: val.length,
+        });
+      }
+    });
+  }
+
+  const totalPendencias = pendencias.length;
+  const criticas = pendencias.filter((p) => p.tipo === "critica").length;
 
   return (
     <div className="space-y-6">
@@ -228,6 +322,127 @@ function Dashboard() {
 
       {/* ── Seções exclusivas do Comandante ── */}
       {!isTelefonista && <>
+
+      {/* ── 0. Central de Pendências da Carga ── */}
+      {totalPendencias > 0 && (
+        <Card className={criticas > 0 ? "border-red-400 border-2" : "border-amber-300 border-2"}>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <ShieldAlert className={`h-5 w-5 ${criticas > 0 ? "text-red-600" : "text-amber-600"}`} />
+              Central de Pendências da Carga
+              <div className="flex items-center gap-1.5 ml-auto">
+                {criticas > 0 && (
+                  <Badge className="bg-red-600 text-white text-xs">{criticas} crítica(s)</Badge>
+                )}
+                <Badge className={criticas > 0 ? "bg-amber-600 text-white text-xs" : "bg-amber-500 text-white text-xs"}>
+                  {totalPendencias} pendência(s)
+                </Badge>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {pendencias.slice(0, 3).map((p, i) => (
+                <div
+                  key={i}
+                  className={`flex items-start gap-3 rounded-lg px-3 py-2.5 border ${
+                    p.tipo === "critica"
+                      ? "bg-red-50 border-red-200"
+                      : "bg-amber-50/60 border-amber-200"
+                  }`}
+                >
+                  {p.tipo === "critica"
+                    ? <XCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
+                    : <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                  }
+                  <div className="min-w-0 flex-1">
+                    <p className={`text-sm font-semibold ${p.tipo === "critica" ? "text-red-800" : "text-amber-800"}`}>
+                      {p.titulo}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{p.descricao}</p>
+                  </div>
+                </div>
+              ))}
+              {totalPendencias > 3 && (
+                <p className="text-xs text-muted-foreground pl-1">
+                  + {totalPendencias - 3} outra(s) pendência(s)...
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => setPendenciasOpen(true)}
+              className="mt-3 text-xs text-primary underline underline-offset-2 hover:opacity-80"
+            >
+              Ver todas as pendências →
+            </button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Modal — Central de Pendências */}
+      <Dialog open={pendenciasOpen} onOpenChange={setPendenciasOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-amber-600" />
+              Central de Pendências da Carga
+              <Badge variant="outline" className="ml-auto">{totalPendencias} total</Badge>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            {pendencias.length === 0 ? (
+              <div className="flex items-center gap-2 text-emerald-700 text-sm py-4">
+                <CheckCircle2 className="h-5 w-5" />
+                Nenhuma pendência encontrada. Carga regularizada!
+              </div>
+            ) : (
+              pendencias.map((p, i) => (
+                <div
+                  key={i}
+                  className={`rounded-lg border p-4 ${
+                    p.tipo === "critica"
+                      ? "bg-red-50 border-red-300"
+                      : "bg-amber-50/60 border-amber-200"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    {p.tipo === "critica"
+                      ? <XCircle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
+                      : <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
+                    }
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-semibold text-sm ${p.tipo === "critica" ? "text-red-800" : "text-amber-800"}`}>
+                        {p.titulo}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{p.descricao}</p>
+                      {/* Lista de equipamentos afetados (até 5) */}
+                      {p.items && p.items.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {p.items.slice(0, 5).map((e: any) => (
+                            <div key={e.id} className="flex items-center gap-2 text-xs bg-white/80 rounded px-2 py-1 border">
+                              <span className="font-medium truncate">{e.descricao ?? "—"}</span>
+                              {e.patrimonio && <span className="text-muted-foreground font-mono shrink-0">{e.patrimonio}</span>}
+                              {!e.patrimonio && <span className="text-muted-foreground shrink-0">s/patrimônio</span>}
+                            </div>
+                          ))}
+                          {p.items.length > 5 && (
+                            <p className="text-[11px] text-muted-foreground pl-1">
+                              + {p.items.length - 5} outro(s)...
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <Badge className={`text-xs shrink-0 ${p.tipo === "critica" ? "bg-red-600 text-white" : "bg-amber-500 text-white"}`}>
+                      {p.tipo === "critica" ? "CRÍTICA" : "ATENÇÃO"}
+                    </Badge>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── 1. Gráficos ── */}
       <div className="grid lg:grid-cols-2 gap-4">

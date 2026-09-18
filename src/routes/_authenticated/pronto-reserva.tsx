@@ -296,8 +296,11 @@ function ProntoReservaPage() {
     const VERDE_ESCURO: [number, number, number] = [22, 78, 43];
     const CINZA: [number, number, number] = [80, 80, 80];
 
+    // Reserva 32mm no rodapé para assinaturas em cada página
+    const FOOTER_H = 32;
+
     function addPageIfNeeded(space: number) {
-      if (y + space > ph - margin - 20) {
+      if (y + space > ph - margin - FOOTER_H) {
         doc.addPage();
         y = margin;
         addCabecalhoPag();
@@ -542,15 +545,46 @@ function ProntoReservaPage() {
     y += 7;
     doc.text("LACRE ARMÁRIOS: ___________________________________________", margin, y);
 
-    // Rodapé em todas as páginas
+    // ── Rodapé + assinaturas em TODAS as páginas ──────────────────────────────
     const totalPgs = (doc as any).internal.getNumberOfPages();
+    const ASSINATURAS = ["SCMT", "OF DE DIA", "CMT PEL COM", "TELEFONISTA"];
+    const colW = (pw - 2 * margin) / ASSINATURAS.length;
+
     for (let i = 1; i <= totalPgs; i++) {
       doc.setPage(i);
+
+      // Linha divisória acima das assinaturas
+      const divY = ph - margin - 28;
+      doc.setDrawColor(180, 180, 180);
+      doc.setLineWidth(0.3);
+      doc.line(margin, divY, pw - margin, divY);
+
+      // Bloco de assinaturas (4 colunas)
       doc.setFontSize(7);
-      doc.setTextColor(150, 150, 150);
+      doc.setTextColor(40, 40, 40);
+      ASSINATURAS.forEach((label, idx) => {
+        const cx = margin + idx * colW;
+        const lineY = divY + 14;
+        const lineEnd = cx + colW - 4;
+
+        // Linha de assinatura
+        doc.setDrawColor(0);
+        doc.setLineWidth(0.4);
+        doc.line(cx, lineY, lineEnd, lineY);
+
+        // Rótulo da assinatura
+        doc.setFontSize(6.5);
+        doc.setFont(undefined as any, "bold");
+        doc.text(label, cx + (colW - 4) / 2, lineY + 4, { align: "center" });
+        doc.setFont(undefined as any, "normal");
+      });
+
+      // Gerado em (rodapé final)
+      doc.setFontSize(6);
+      doc.setTextColor(160, 160, 160);
       doc.text(
-        `Gerado em ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} | SISMAT — Pel Com`,
-        pw / 2, ph - 6, { align: "center" }
+        `Gerado em ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} | SISMAT — Pel Com | Pág. ${i}/${totalPgs}`,
+        pw / 2, ph - margin + 2, { align: "center" }
       );
     }
 

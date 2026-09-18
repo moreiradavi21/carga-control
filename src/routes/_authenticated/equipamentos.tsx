@@ -10,10 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SITUACOES, situacaoLabel, situacaoColor } from "@/lib/sismat/constants";
-import { Plus, Search, Pencil, Trash2, QrCode, AlertTriangle } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, QrCode, AlertTriangle, FileSearch } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { EquipamentoDialog } from "@/components/sismat/equipamento-dialog";
 import { QrDialog } from "@/components/sismat/qr-dialog";
+import { FichaEquipamentoDialog } from "@/components/sismat/ficha-equipamento-dialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/equipamentos")({ component: EquipamentosPage });
@@ -30,6 +31,7 @@ function EquipamentosPage() {
   const [editing, setEditing] = useState<any | null>(null);
   const [creating, setCreating] = useState(false);
   const [qr, setQr] = useState<any | null>(null);
+  const [ficha, setFicha] = useState<any | null>(null);
 
   const { data: equips = [] } = useQuery({
     queryKey: ["equipamentos"],
@@ -53,6 +55,12 @@ function EquipamentosPage() {
   const situacoesVisiveis = isTelefonista
     ? SITUACOES.filter((s) => SITUACOES_TELEFONISTA.includes(s.value))
     : SITUACOES;
+
+  // Somente categorias com ao menos um equipamento cadastrado
+  const catsComEquips = useMemo(() => {
+    const usedIds = new Set(equips.map((e: any) => e.categoria_id).filter(Boolean));
+    return cats.filter((c: any) => usedIds.has(c.id));
+  }, [equips, cats]);
 
   const filtered = useMemo(() => {
     const term = q.toLowerCase();
@@ -104,7 +112,7 @@ function EquipamentosPage() {
               <SelectTrigger><SelectValue placeholder="Categoria" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as categorias</SelectItem>
-                {cats.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                {catsComEquips.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -127,7 +135,7 @@ function EquipamentosPage() {
             </TableHeader>
             <TableBody>
               {filtered.map((e: any) => (
-                <TableRow key={e.id}>
+                <TableRow key={e.id} className="cursor-pointer hover:bg-muted/30" onClick={() => setFicha(e)}>
                   <TableCell className="font-mono text-xs">{e.patrimonio ?? "—"}</TableCell>
                   <TableCell className="font-mono text-xs">{e.numero_serie ?? "—"}</TableCell>
                   <TableCell className="font-medium">
@@ -154,8 +162,11 @@ function EquipamentosPage() {
                   <TableCell className="text-sm">{e.categorias?.nome ?? "—"}</TableCell>
                   <TableCell className="text-sm">{[e.marca, e.modelo].filter(Boolean).join(" ") || "—"}</TableCell>
                   <TableCell><Badge className={`${situacaoColor(e.situacao)} text-white hover:${situacaoColor(e.situacao)}`}>{situacaoLabel(e.situacao)}</Badge></TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right" onClick={(ev) => ev.stopPropagation()}>
                     <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="icon" title="Ficha do equipamento" onClick={() => setFicha(e)}>
+                        <FileSearch className="h-4 w-4 text-primary/70" />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => setQr(e)}><QrCode className="h-4 w-4" /></Button>
                       {(role === "comandante" || role === "adjunto") && (
                         <Button variant="ghost" size="icon" onClick={() => setEditing(e)}><Pencil className="h-4 w-4" /></Button>
@@ -177,6 +188,7 @@ function EquipamentosPage() {
 
       <EquipamentoDialog open={creating || !!editing} onOpenChange={(v: boolean)=>{ if(!v){ setCreating(false); setEditing(null); } }} equipamento={editing} categorias={cats} />
       <QrDialog open={!!qr} onOpenChange={(v: boolean)=>{ if(!v) setQr(null); }} equipamento={qr} />
+      <FichaEquipamentoDialog equipamento={ficha} open={!!ficha} onOpenChange={(v) => { if (!v) setFicha(null); }} />
     </div>
   );
 }

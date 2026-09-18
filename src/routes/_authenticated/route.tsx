@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboard, Radio, ClipboardList, FileUp, Users, FileText,
-  ShieldAlert, LogOut, Shield, Clock, Wifi, Satellite, Phone, Globe, BookCheck,
+  ShieldAlert, LogOut, Shield, Clock, Wifi, Satellite, Phone, Globe, BookCheck, Warehouse,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -70,6 +70,10 @@ const navContratos = [
   { to: "/contrato-starlink",  label: "Starlink",  icon: Globe },
 ];
 
+const navPef = [
+  { to: "/pef-def", label: "PEF / DEF", icon: Warehouse },
+];
+
 function AuthLayout() {
   const { role, fullName, status, loading } = useAuth();
   const nav = useNavigate();
@@ -129,8 +133,11 @@ function AuthLayout() {
     );
   }
 
+  const isPef = role === "pef";
   const items = role === "comandante"
-    ? [...navBase, ...navComandante, ...navAdmin]
+    ? [...navBase, ...navComandante, ...navPef, ...navAdmin]
+    : isPef
+    ? [...navBase, ...navPef]
     : navBase;
 
   return (
