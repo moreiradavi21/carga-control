@@ -303,12 +303,14 @@ export type Database = {
           foto_url: string | null
           id: string
           localizacao: string | null
+          localizacao_atual: string | null
           marca: string | null
           modelo: string | null
           notas_auditorio: string | null
           numero_serie: string | null
           observacoes: string | null
           patrimonio: string | null
+          responsavel_atual: string | null
           situacao: Database["public"]["Enums"]["situacao_equipamento"]
           updated_at: string
         }
@@ -323,12 +325,14 @@ export type Database = {
           foto_url?: string | null
           id?: string
           localizacao?: string | null
+          localizacao_atual?: string | null
           marca?: string | null
           modelo?: string | null
           notas_auditorio?: string | null
           numero_serie?: string | null
           observacoes?: string | null
           patrimonio?: string | null
+          responsavel_atual?: string | null
           situacao?: Database["public"]["Enums"]["situacao_equipamento"]
           updated_at?: string
         }
@@ -343,12 +347,14 @@ export type Database = {
           foto_url?: string | null
           id?: string
           localizacao?: string | null
+          localizacao_atual?: string | null
           marca?: string | null
           modelo?: string | null
           notas_auditorio?: string | null
           numero_serie?: string | null
           observacoes?: string | null
           patrimonio?: string | null
+          responsavel_atual?: string | null
           situacao?: Database["public"]["Enums"]["situacao_equipamento"]
           updated_at?: string
         }
@@ -556,6 +562,54 @@ export type Database = {
         }
         Relationships: []
       }
+      prontos: {
+        Row: {
+          baixados: number
+          cmt_pel_com: string | null
+          created_at: string
+          criado_por: string | null
+          data_conferencia: string
+          fora: number
+          id: string
+          no_pelotao: number
+          of_de_dia: string | null
+          responsavel_conferencia: string | null
+          scmt: string | null
+          snapshot: Json
+          total: number
+        }
+        Insert: {
+          baixados?: number
+          cmt_pel_com?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_conferencia?: string
+          fora?: number
+          id?: string
+          no_pelotao?: number
+          of_de_dia?: string | null
+          responsavel_conferencia?: string | null
+          scmt?: string | null
+          snapshot?: Json
+          total?: number
+        }
+        Update: {
+          baixados?: number
+          cmt_pel_com?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_conferencia?: string
+          fora?: number
+          id?: string
+          no_pelotao?: number
+          of_de_dia?: string | null
+          responsavel_conferencia?: string | null
+          scmt?: string | null
+          snapshot?: Json
+          total?: number
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -597,6 +651,7 @@ export type Database = {
       is_comandante: { Args: { _user_id: string }; Returns: boolean }
       is_quarta_secao: { Args: { _user_id: string }; Returns: boolean }
       pef_unidade_do: { Args: { _user_id: string }; Returns: string }
+      verificar_integridade_carga: { Args: never; Returns: Json }
     }
     Enums: {
       app_role:
@@ -614,6 +669,9 @@ export type Database = {
         | "em_manutencao"
         | "cautela_servico"
         | "descarga"
+        | "em_transferencia"
+        | "pef_def"
+        | "em_missao"
       status_cautela: "ativa" | "finalizada" | "cancelada"
     }
     CompositeTypes: {
@@ -752,6 +810,9 @@ export const Constants = {
         "em_manutencao",
         "cautela_servico",
         "descarga",
+        "em_transferencia",
+        "pef_def",
+        "em_missao",
       ],
       status_cautela: ["ativa", "finalizada", "cancelada"],
     },
