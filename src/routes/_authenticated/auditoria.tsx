@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { AlertTriangle, Save, FileText, NotebookPen } from "lucide-react";
+import { AlertTriangle, Save, FileText, NotebookPen, ShieldCheck, ShieldAlert, RefreshCw } from "lucide-react";
 import { useAuth } from "@/lib/sismat/use-auth";
 
 export const Route = createFileRoute("/_authenticated/auditoria")({ component: Auditoria });
@@ -61,6 +61,23 @@ function Auditoria() {
     });
   }, [sindicanciaData]);
 
+  // Integridade da carga
+  const [checkingInt, setCheckingInt] = useState(false);
+  const [intResult, setIntResult] = useState<any | null>(null);
+
+  async function verificarIntegridade() {
+    setCheckingInt(true);
+    try {
+      const { data, error } = await supabase.rpc("verificar_integridade_carga" as any);
+      if (error) throw error;
+      setIntResult(data);
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao verificar integridade");
+    } finally {
+      setCheckingInt(false);
+    }
+  }
+
   // Logs de auditoria
   const { data: logs = [] } = useQuery({
     queryKey: ["audit"],
@@ -90,8 +107,12 @@ function Auditoria() {
         <p className="text-sm text-muted-foreground">Materiais em sindicância e registro de eventos do sistema</p>
       </div>
 
-      <Tabs defaultValue="sindicancia">
+      <Tabs defaultValue="integridade">
         <TabsList>
+          <TabsTrigger value="integridade" className="gap-2">
+            <ShieldCheck className="h-4 w-4" />
+            Integridade da Carga
+          </TabsTrigger>
           <TabsTrigger value="sindicancia" className="gap-2">
             <AlertTriangle className="h-4 w-4" />
             Sindicância
@@ -104,6 +125,183 @@ function Auditoria() {
             Logs do sistema
           </TabsTrigger>
         </TabsList>
+
+        {/* ── Aba Integridade da Carga ── */}
+        <TabsContent value="integridade" className="mt-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Verifica duplicatas de patrimônio, equipamentos em estado inconsistente e divergências de situação.
+            </p>
+            <Button onClick={verificarIntegridade} disabled={checkingInt} size="sm">
+              <RefreshCw className={`h-4 w-4 ${checkingInt ? "animate-spin" : ""}`} />
+              {checkingInt ? "Verificando..." : "Verificar agora"}
+            </Button>
+          </div>
+
+          {!intResult && !checkingInt && (
+            <Card>
+              <CardContent className="py-10 text-center text-muted-foreground">
+                <ShieldCheck className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">Clique em "Verificar agora" para analisar a integridade dos dados.</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {intResult && (
+            <div className="space-y-4">
+              {/* Resumo */}
+              {(() => {
+                const dups   = intResult.patrimonios_duplicados?.length ?? 0;
+                const semPat = intResult.sem_patrimonio_nem_serie ?? 0;
+                const cauSem = intResult.cautelados_sem_cautela?.length ?? 0;
+                const baixCau = intResult.baixados_em_cautela_ativa?.length ?? 0;
+                const totalProblemas = dups + (semPat > 0 ? 1 : 0) + cauSem + baixCau;
+                return (
+                  <Card className={totalProblemas === 0 ? "border-emerald-400" : "border-red-400"}>
+                    <CardContent className="py-4 flex items-center gap-3">
+                      {totalProblemas === 0 ? (
+                        <>
+                          <ShieldCheck className="h-8 w-8 text-emerald-600 shrink-0" />
+                          <div>
+                            <p className="font-semibold text-emerald-700">Carga consistente</p>
+                            <p className="text-xs text-muted-foreground">
+                              Nenhuma divergência encontrada em {format(new Date(intResult.verificado_em), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}.
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <ShieldAlert className="h-8 w-8 text-red-600 shrink-0" />
+                          <div>
+                            <p className="font-semibold text-red-700">{totalProblemas} problema(s) encontrado(s)</p>
+                            <p className="text-xs text-muted-foreground">
+                              Verificado em {format(new Date(intResult.verificado_em), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })()}
+
+              {/* Sem patrimônio nem série */}
+              {(intResult.sem_patrimonio_nem_serie ?? 0) > 0 && (
+                <Card className="border-orange-300">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2 text-orange-700">
+                      <AlertTriangle className="h-4 w-4" />
+                      {intResult.sem_patrimonio_nem_serie} equipamento(s) sem patrimônio e sem número de série
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-muted-foreground">
+                      Acesse a página de Equipamentos, filtre os itens sem patrimônio e preencha o campo.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Patrimônios duplicados */}
+              {(intResult.patrimonios_duplicados?.length ?? 0) > 0 && (
+                <Card className="border-red-400">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2 text-red-700">
+                      <AlertTriangle className="h-4 w-4" />
+                      Patrimônios duplicados
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Patrimônio</TableHead>
+                          <TableHead className="text-center">Quantidade</TableHead>
+                          <TableHead>Ação necessária</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {intResult.patrimonios_duplicados.map((d: any, i: number) => (
+                          <TableRow key={i} className="bg-red-50">
+                            <TableCell className="font-mono font-semibold">{d.patrimonio}</TableCell>
+                            <TableCell className="text-center text-red-700 font-bold">{d.qtd}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">Corrigir manualmente — dois registros com mesmo patrimônio</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Cautelados sem cautela ativa */}
+              {(intResult.cautelados_sem_cautela?.length ?? 0) > 0 && (
+                <Card className="border-amber-400">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2 text-amber-700">
+                      <AlertTriangle className="h-4 w-4" />
+                      Equipamentos marcados como cautelados mas sem cautela ativa
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Descrição</TableHead>
+                          <TableHead>Patrimônio</TableHead>
+                          <TableHead>Situação</TableHead>
+                          <TableHead>Ação</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {intResult.cautelados_sem_cautela.map((e: any) => (
+                          <TableRow key={e.id} className="bg-amber-50">
+                            <TableCell className="text-sm font-medium">{e.descricao}</TableCell>
+                            <TableCell className="font-mono text-xs">{e.patrimonio ?? e.numero_serie ?? "—"}</TableCell>
+                            <TableCell className="text-xs">{e.situacao}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">Abrir cautela ou alterar situação para Disponível</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Baixados em cautela ativa */}
+              {(intResult.baixados_em_cautela_ativa?.length ?? 0) > 0 && (
+                <Card className="border-red-400">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2 text-red-700">
+                      <AlertTriangle className="h-4 w-4" />
+                      Equipamentos baixados/extraviados que ainda estão em cautela ativa
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Descrição</TableHead>
+                          <TableHead>Patrimônio</TableHead>
+                          <TableHead>Situação</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {intResult.baixados_em_cautela_ativa.map((e: any) => (
+                          <TableRow key={e.id} className="bg-red-50">
+                            <TableCell className="text-sm font-medium">{e.descricao}</TableCell>
+                            <TableCell className="font-mono text-xs">{e.patrimonio ?? "—"}</TableCell>
+                            <TableCell className="text-xs text-red-700 font-semibold">{e.situacao}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+        </TabsContent>
 
         {/* ── Aba Sindicância ── */}
         <TabsContent value="sindicancia" className="space-y-4 mt-4">

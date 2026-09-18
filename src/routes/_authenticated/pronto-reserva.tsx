@@ -45,20 +45,39 @@ const GRUPOS = [
 type GrupoKey = typeof GRUPOS[number]["key"];
 
 // ── Classificação de situação ───────────────────────────────────────────────
+// pelotao  → disponivel
+// fora     → todos os estados externos (cautelado, transferência, PEF, missão, manutenção, sindicância)
+// baixado  → baixado, extraviado, descarga
 function classifySit(sit: string): "pelotao" | "fora" | "baixado" {
   if (["baixado", "extraviado", "descarga"].includes(sit)) return "baixado";
   if (sit === "disponivel") return "pelotao";
-  return "fora";
+  return "fora"; // em_cautela, cautela_servico, em_transferencia, pef_def, em_missao, em_manutencao, em_sindicancia
 }
 
 function sitLabelFora(sit: string): string {
   const map: Record<string, string> = {
-    em_cautela:      "CAUTELADO",
-    cautela_servico: "SERVIÇO",
-    em_manutencao:   "MANUTENÇÃO",
-    em_sindicancia:  "SINDICÂNCIA",
+    em_cautela:       "CAUTELADO",
+    cautela_servico:  "SERVIÇO",
+    em_transferencia: "TRANSFERÊNCIA",
+    pef_def:          "PEF / DEF",
+    em_missao:        "MISSÃO",
+    em_manutencao:    "MANUTENÇÃO",
+    em_sindicancia:   "SINDICÂNCIA",
   };
   return map[sit] ?? sit.toUpperCase();
+}
+
+function sitCorFora(sit: string): string {
+  const map: Record<string, string> = {
+    em_cautela:       "bg-amber-600",
+    cautela_servico:  "bg-violet-600",
+    em_transferencia: "bg-cyan-600",
+    pef_def:          "bg-indigo-600",
+    em_missao:        "bg-teal-600",
+    em_manutencao:    "bg-blue-600",
+    em_sindicancia:   "bg-orange-600",
+  };
+  return map[sit] ?? "bg-slate-500";
 }
 
 // Determina grupo a partir do nome da categoria pai (ou própria)
@@ -158,6 +177,21 @@ function ProntoReservaPage() {
     },
   });
 
+  // ── Histórico de prontos do banco de dados ───────────────────────────────
+  const { data: historicoDB = [], refetch: refetchHistorico } = useQuery({
+    queryKey: ["prontos-historico"],
+    queryFn: async () => {
+      try {
+        const { data } = await supabase
+          .from("prontos" as any)
+          .select("id, data_conferencia, of_de_dia, responsavel_conferencia, total, no_pelotao, fora, baixados")
+          .order("data_conferencia", { ascending: false })
+          .limit(30);
+        return (data ?? []) as any[];
+      } catch { return []; }
+    },
+  });
+
   const loading = loadEquips || loadCautelas;
 
   // ── Map equipamento_id → cautela ──────────────────────────────────────────
@@ -246,7 +280,7 @@ function ProntoReservaPage() {
   }
 
   // ── Gerar PDF ────────────────────────────────────────────────────────────
-  function gerarPDF() {
+  async function gerarPDF() {
     const now = new Date();
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const pw = doc.internal.pageSize.getWidth();
@@ -509,15 +543,49 @@ function ProntoReservaPage() {
     const nomeArq = `Pronto_Reserva_${format(now, "yyyyMMdd_HHmm")}.pdf`;
     doc.save(nomeArq);
 
-    // Salvar no histórico da sessão
-    setHistorico(prev => [
-      {
-        data: format(now, "dd/MM/yyyy HH:mm", { locale: ptBR }),
-        resumo: `Total: ${resumo.total} | Pelotão: ${resumo.pelotao} | Fora: ${resumo.fora} | Baixados: ${resumo.baixado}`,
-        ts: now.toISOString(),
-      },
-      ...prev,
-    ]);
+    // Salvar snapshot no banco de dados (tabela prontos)
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const snapshotPayload = gruposData.map(g => ({
+        grupo: g.key,
+        total: g.total,
+        pelotao: g.pelotao,
+        fora: g.fora,
+        baixado: g.baixado,
+        models: g.models.map(m => ({
+          nome: m.nome,
+          total: m.total,
+          pelotao: m.pelotao,
+          fora: m.fora,
+          baixado: m.baixado,
+        })),
+      }));
+      await supabase.from("prontos" as any).insert({
+        data_conferencia: now.toISOString(),
+        of_de_dia: ofDeDia || null,
+        scmt: scmt || null,
+        cmt_pel_com: cmtPelCom || null,
+        responsavel_conferencia: respConf || null,
+        total: resumo.total,
+        no_pelotao: resumo.pelotao,
+        fora: resumo.fora,
+        baixados: resumo.baixado,
+        snapshot: snapshotPayload,
+        criado_por: userData.user?.id ?? null,
+      });
+      // Recarregar histórico do banco
+      refetchHistorico();
+    } catch {
+      // prontos table pode ainda não existir — fallback para sessão
+      setHistorico(prev => [
+        {
+          data: format(now, "dd/MM/yyyy HH:mm", { locale: ptBR }),
+          resumo: `Total: ${resumo.total} | Pelotão: ${resumo.pelotao} | Fora: ${resumo.fora} | Baixados: ${resumo.baixado}`,
+          ts: now.toISOString(),
+        },
+        ...prev,
+      ]);
+    }
 
     setPdfDialog(false);
   }
@@ -739,11 +807,7 @@ function ProntoReservaPage() {
                               <TableCell className="text-xs">{model}</TableCell>
                               <TableCell className="text-xs font-mono">{e.patrimonio ?? e.numero_serie ?? "—"}</TableCell>
                               <TableCell className="text-xs">
-                                <Badge className={`text-[10px] ${
-                                  e.situacao === "em_cautela"      ? "bg-amber-600"   :
-                                  e.situacao === "cautela_servico" ? "bg-violet-600"  :
-                                  e.situacao === "em_manutencao"   ? "bg-blue-600"    :
-                                  "bg-orange-600"
+                                <Badge className={`text-[10px] ${sitCorFora(e.situacao)
                                 } text-white`}>
                                   {sitLabelFora(e.situacao)}
                                 </Badge>
@@ -803,12 +867,7 @@ function ProntoReservaPage() {
                     <TableCell className="font-mono text-xs">{e.patrimonio ?? "—"}</TableCell>
                     <TableCell className="font-mono text-xs">{e.numero_serie ?? "—"}</TableCell>
                     <TableCell>
-                      <Badge className={`text-[10px] ${
-                        e.situacao === "em_cautela"      ? "bg-amber-600"  :
-                        e.situacao === "cautela_servico" ? "bg-violet-600" :
-                        e.situacao === "em_manutencao"   ? "bg-blue-600"   :
-                        "bg-orange-600"
-                      } text-white`}>
+                      <Badge className={`text-[10px] ${sitCorFora(e.situacao)} text-white`}>
                         {sitLabelFora(e.situacao)}
                       </Badge>
                     </TableCell>
@@ -878,14 +937,38 @@ function ProntoReservaPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="h-4 w-4" />
-              Histórico de Prontos — Sessão Atual
+              Histórico de Prontos
             </DialogTitle>
           </DialogHeader>
-          {historico.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">
-              Nenhum pronto gerado nesta sessão.
-            </p>
-          ) : (
+          {/* Prontos do banco de dados (persistentes) */}
+          {historicoDB.length > 0 ? (
+            <div className="space-y-2 max-h-80 overflow-y-auto">
+              {historicoDB.map((h: any) => (
+                <div key={h.id} className="rounded border p-3 text-sm space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">
+                      {h.data_conferencia
+                        ? format(new Date(h.data_conferencia), "dd/MM/yyyy HH:mm", { locale: ptBR })
+                        : "—"}
+                    </span>
+                    {h.of_de_dia && (
+                      <span className="text-xs text-muted-foreground">OF: {h.of_de_dia}</span>
+                    )}
+                  </div>
+                  <div className="flex gap-3 text-xs text-muted-foreground">
+                    <span>Total: <strong>{h.total}</strong></span>
+                    <span className="text-emerald-700">Pel: <strong>{h.no_pelotao}</strong></span>
+                    <span className="text-amber-700">Fora: <strong>{h.fora}</strong></span>
+                    <span className="text-red-700">Baix: <strong>{h.baixados}</strong></span>
+                  </div>
+                  {h.responsavel_conferencia && (
+                    <div className="text-xs text-muted-foreground">Resp: {h.responsavel_conferencia}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : historico.length > 0 ? (
+            /* Fallback: histórico da sessão (prontos table ainda não existe) */
             <div className="space-y-2 max-h-72 overflow-y-auto">
               {historico.map((h, i) => (
                 <div key={i} className="rounded border p-3 text-sm space-y-0.5">
@@ -894,6 +977,10 @@ function ProntoReservaPage() {
                 </div>
               ))}
             </div>
+          ) : (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              Nenhum pronto registrado ainda. Gere um PDF para criar o primeiro registro.
+            </p>
           )}
         </DialogContent>
       </Dialog>

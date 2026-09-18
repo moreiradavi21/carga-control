@@ -21,7 +21,7 @@ const schema = z.object({
   marca: z.string().trim().max(100).optional().or(z.literal("")),
   modelo: z.string().trim().max(100).optional().or(z.literal("")),
   localizacao: z.string().trim().max(200).optional().or(z.literal("")),
-  situacao: z.enum(["disponivel","em_cautela","cautela_servico","extraviado","em_sindicancia","baixado","em_manutencao","descarga"]),
+  situacao: z.enum(["disponivel","em_cautela","cautela_servico","em_transferencia","pef_def","em_missao","extraviado","em_sindicancia","baixado","em_manutencao","descarga"]),
   observacoes: z.string().trim().max(1000).optional().or(z.literal("")),
 });
 
