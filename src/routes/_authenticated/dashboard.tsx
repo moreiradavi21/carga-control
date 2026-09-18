@@ -155,6 +155,9 @@ function Dashboard() {
     ? stats.filter((e: any) => drillSit === "__all__" ? true : e.situacao === drillSit)
     : [];
 
+  // Contagem de equipamentos em serviço 7º BIS (derivada de stats)
+  const countServico = stats.filter((e: any) => e.situacao === "cautela_servico").length;
+
   return (
     <div className="space-y-6">
       <div>
@@ -182,61 +185,6 @@ function Dashboard() {
           </Card>
         ))}
       </div>
-
-      {/* Cautelas ativas */}
-      <Card className={cautelasAtivas.length > 0 ? "border-amber-400 border-2" : ""}>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <ClipboardList className="h-4 w-4 text-amber-600" />
-            Cautelas ativas
-            <Badge variant="outline" className="ml-auto text-amber-700 border-amber-400">
-              {cautelasAtivas.length}
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {cautelasAtivas.length === 0 ? (
-            <p className="text-sm text-muted-foreground px-6 pb-4">Nenhuma cautela ativa no momento.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nº</TableHead>
-                  <TableHead>Responsável</TableHead>
-                  <TableHead>Retirada por</TableHead>
-                  <TableHead>Saída</TableHead>
-                  <TableHead>Itens pendentes</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {cautelasAtivas.map((c: any) => {
-                  const itens = c.cautela_itens ?? [];
-                  const pendentes = itens.filter((i: any) => !i.devolvido).length;
-                  return (
-                    <TableRow key={c.id}>
-                      <TableCell className="font-mono text-xs">{c.numero}</TableCell>
-                      <TableCell className="font-medium">
-                        {[c.posto_responsavel, c.militar_responsavel].filter(Boolean).join(" ")}
-                      </TableCell>
-                      <TableCell className="text-sm">{c.militar_retirada ?? "—"}</TableCell>
-                      <TableCell className="text-sm">{format(new Date(c.data_saida), "dd/MM/yyyy HH:mm")}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">{pendentes} de {itens.length}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Link to="/cautelas/$id" params={{ id: c.id }} className="text-xs text-primary underline">
-                          Abrir
-                        </Link>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Modal drill-down — lista de equipamentos da situação clicada */}
       <Dialog open={!!drillSit} onOpenChange={(o) => { if (!o) setDrillSit(null); }}>
@@ -281,7 +229,39 @@ function Dashboard() {
       {/* ── Seções exclusivas do Comandante ── */}
       {!isTelefonista && <>
 
-      {/* ── Vencimento de Contratos ── */}
+      {/* ── 1. Gráficos ── */}
+      <div className="grid lg:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader><CardTitle className="text-base">Situação dos equipamentos</CardTitle></CardHeader>
+          <CardContent style={{ height: 280 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={pieData} dataKey="value" nameKey="name" outerRadius={90} label>
+                  {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle className="text-base">Por categoria</CardTitle></CardHeader>
+          <CardContent style={{ height: 280 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={catData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" fontSize={11} />
+                <YAxis fontSize={11} allowDecimals={false} />
+                <Tooltip />
+                <Bar dataKey="value" fill="#556b2f" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ── 2. Vencimento de Contratos ── */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
@@ -334,7 +314,87 @@ function Dashboard() {
         </CardContent>
       </Card>
 
-      {/* ── Material no PEF aguardando guia de transferência ── */}
+      {/* ── 3. Cautelas ativas ── */}
+      <Card className={cautelasAtivas.length > 0 || countServico > 0 ? "border-amber-400 border-2" : ""}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <ClipboardList className="h-4 w-4 text-amber-600" />
+            Cautelas ativas
+            <Badge variant="outline" className="ml-auto text-amber-700 border-amber-400">
+              {cautelasAtivas.length + (countServico > 0 ? 1 : 0)}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {cautelasAtivas.length === 0 && countServico === 0 ? (
+            <p className="text-sm text-muted-foreground px-6 pb-4">Nenhuma cautela ativa no momento.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nº / Identificação</TableHead>
+                  <TableHead>Responsável</TableHead>
+                  <TableHead>Retirada por</TableHead>
+                  <TableHead>Saída</TableHead>
+                  <TableHead>Itens pendentes</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {/* Linha virtual: CAUTELA SERVIÇO 7º BIS */}
+                {countServico > 0 && (
+                  <TableRow className="bg-violet-50/50 hover:bg-violet-50">
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="h-3.5 w-3.5 text-violet-600 shrink-0" />
+                        <span className="font-mono text-xs font-bold text-violet-700">SERVIÇO 7º BIS</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium text-sm">7º BIS — Serviço Operacional</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">Vinculação automática</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">—</TableCell>
+                    <TableCell>
+                      <Badge className="bg-violet-600 text-white text-xs">{countServico} item(ns)</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Link to="/cautelas" className="text-xs text-violet-600 underline">
+                        Ver lista
+                      </Link>
+                    </TableCell>
+                  </TableRow>
+                )}
+                {/* Cautelas normais ativas */}
+                {cautelasAtivas.map((c: any) => {
+                  const itens = c.cautela_itens ?? [];
+                  const pendentes = itens.filter((i: any) => !i.devolvido).length;
+                  return (
+                    <TableRow key={c.id}>
+                      <TableCell className="font-mono text-xs">{c.numero}</TableCell>
+                      <TableCell className="font-medium">
+                        {[c.posto_responsavel, c.militar_responsavel].filter(Boolean).join(" ")}
+                      </TableCell>
+                      <TableCell className="text-sm">{c.militar_retirada ?? "—"}</TableCell>
+                      <TableCell className="text-sm">
+                        {c.data_saida ? format(new Date(c.data_saida), "dd/MM/yyyy HH:mm") : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">{pendentes} de {itens.length}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Link to="/cautelas/$id" params={{ id: c.id }} className="text-xs text-primary underline">
+                          Abrir
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── 4. Material no PEF aguardando guia de transferência ── */}
       <Card className={pefMateriais.length > 0 ? "border-amber-400 border-2" : ""}>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
@@ -377,39 +437,7 @@ function Dashboard() {
         </CardContent>
       </Card>
 
-      {/* Gráficos */}
-      <div className="grid lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader><CardTitle className="text-base">Situação dos equipamentos</CardTitle></CardHeader>
-          <CardContent style={{ height: 280 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={pieData} dataKey="value" nameKey="name" outerRadius={90} label>
-                  {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader><CardTitle className="text-base">Por categoria</CardTitle></CardHeader>
-          <CardContent style={{ height: 280 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={catData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" fontSize={11} />
-                <YAxis fontSize={11} allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="value" fill="#556b2f" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Últimas movimentações */}
+      {/* ── 5. Últimas movimentações ── */}
       <Card>
         <CardHeader><CardTitle className="text-base">Últimas movimentações</CardTitle></CardHeader>
         <CardContent>

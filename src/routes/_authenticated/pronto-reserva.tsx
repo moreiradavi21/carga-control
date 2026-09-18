@@ -410,14 +410,23 @@ function ProntoReservaPage() {
         for (const e of model.equips) {
           if (classifySit(e.situacao) !== "fora") continue;
           const ci = cautelaMap[e.id];
+          const isServico = e.situacao === "cautela_servico";
           cautelasGrupo.push({
             material:   model.nome,
             patrimonio: e.patrimonio ?? e.numero_serie ?? "—",
             situacao:   sitLabelFora(e.situacao),
-            quem:       ci ? `${ci.posto ?? ""} ${ci.militar ?? ""}`.trim() : (e.localizacao ?? "—"),
-            onde:       ci ? (ci.companhia ?? ci.finalidade ?? "—") : (e.localizacao ?? "—"),
+            quem:       isServico
+                          ? "7º BIS — Serviço"
+                          : ci
+                          ? `${ci.posto ?? ""} ${ci.militar ?? ""}`.trim()
+                          : (e.localizacao ?? "—"),
+            onde:       isServico
+                          ? "Cmdo Frt Roraima / 7º BIS"
+                          : ci
+                          ? (ci.companhia ?? ci.finalidade ?? "—")
+                          : (e.localizacao ?? "—"),
             dataSaida:  ci ? fmtDate(ci.dataSaida) : "—",
-            documento:  ci ? `Cautela ${ci.numero}` : "—",
+            documento:  isServico ? "CAUTELA SERVIÇO 7º BIS" : ci ? `Cautela ${ci.numero}` : "—",
           });
         }
       }
@@ -807,30 +816,44 @@ function ProntoReservaPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {cautelasGrupo.map(({ model, e, ci }) => (
-                            <TableRow key={e.id}>
-                              <TableCell className="text-xs">{model}</TableCell>
-                              <TableCell className="text-xs font-mono">{e.patrimonio ?? e.numero_serie ?? "—"}</TableCell>
-                              <TableCell className="text-xs">
-                                <Badge className={`text-[10px] ${sitCorFora(e.situacao)
-                                } text-white`}>
-                                  {sitLabelFora(e.situacao)}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-xs">
-                                {ci ? `${ci.posto ?? ""} ${ci.militar ?? ""}`.trim() : (e.localizacao ?? "—")}
-                              </TableCell>
-                              <TableCell className="text-xs">
-                                {ci ? (ci.companhia ?? ci.finalidade ?? "—") : (e.localizacao ?? "—")}
-                              </TableCell>
-                              <TableCell className="text-xs">{ci ? fmtDate(ci.dataSaida) : "—"}</TableCell>
-                              <TableCell className="text-xs">
-                                {ci ? (
-                                  <span className="font-mono text-xs text-muted-foreground">Cautela {ci.numero}</span>
-                                ) : "—"}
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                          {cautelasGrupo.map(({ model, e, ci }) => {
+                            const isServico = e.situacao === "cautela_servico";
+                            return (
+                              <TableRow key={e.id}>
+                                <TableCell className="text-xs">{model}</TableCell>
+                                <TableCell className="text-xs font-mono">{e.patrimonio ?? e.numero_serie ?? "—"}</TableCell>
+                                <TableCell className="text-xs">
+                                  <Badge className={`text-[10px] ${sitCorFora(e.situacao)} text-white`}>
+                                    {sitLabelFora(e.situacao)}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-xs">
+                                  {isServico
+                                    ? "7º BIS — Serviço"
+                                    : ci
+                                    ? `${ci.posto ?? ""} ${ci.militar ?? ""}`.trim()
+                                    : (e.localizacao ?? "—")}
+                                </TableCell>
+                                <TableCell className="text-xs">
+                                  {isServico
+                                    ? "Cmdo Frt Roraima / 7º BIS"
+                                    : ci
+                                    ? (ci.companhia ?? ci.finalidade ?? "—")
+                                    : (e.localizacao ?? "—")}
+                                </TableCell>
+                                <TableCell className="text-xs">{ci ? fmtDate(ci.dataSaida) : "—"}</TableCell>
+                                <TableCell className="text-xs">
+                                  {isServico ? (
+                                    <span className="font-mono text-xs text-violet-700 font-semibold">
+                                      CAUTELA SERVIÇO 7º BIS
+                                    </span>
+                                  ) : ci ? (
+                                    <span className="font-mono text-xs text-muted-foreground">Cautela {ci.numero}</span>
+                                  ) : "—"}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     </div>
@@ -867,6 +890,7 @@ function ProntoReservaPage() {
             <TableBody>
               {foraModal?.items.map((e: any) => {
                 const ci = cautelaMap[e.id];
+                const isServico = e.situacao === "cautela_servico";
                 return (
                   <TableRow key={e.id}>
                     <TableCell className="font-mono text-xs">{e.patrimonio ?? "—"}</TableCell>
@@ -877,14 +901,26 @@ function ProntoReservaPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm">
-                      {ci ? `${ci.posto ?? ""} ${ci.militar ?? ""}`.trim() : (e.localizacao ?? "—")}
+                      {isServico
+                        ? "7º BIS — Serviço"
+                        : ci
+                        ? `${ci.posto ?? ""} ${ci.militar ?? ""}`.trim()
+                        : (e.localizacao ?? "—")}
                     </TableCell>
                     <TableCell className="text-sm">
-                      {ci ? (ci.companhia ?? ci.finalidade ?? "—") : (e.localizacao ?? "—")}
+                      {isServico
+                        ? "Cmdo Frt Roraima / 7º BIS"
+                        : ci
+                        ? (ci.companhia ?? ci.finalidade ?? "—")
+                        : (e.localizacao ?? "—")}
                     </TableCell>
                     <TableCell className="text-sm">{ci ? fmtDate(ci.dataSaida) : "—"}</TableCell>
                     <TableCell className="text-sm font-mono">
-                      {ci ? `Cautela ${ci.numero}` : "—"}
+                      {isServico
+                        ? <span className="text-violet-700 font-semibold">CAUTELA SERVIÇO 7º BIS</span>
+                        : ci
+                        ? `Cautela ${ci.numero}`
+                        : "—"}
                     </TableCell>
                   </TableRow>
                 );

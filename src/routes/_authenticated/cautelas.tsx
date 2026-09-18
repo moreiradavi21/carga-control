@@ -3,12 +3,12 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/sismat/use-auth";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, FileText, RotateCcw, Trash2, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Plus, FileText, RotateCcw, Trash2, CheckCircle2, AlertTriangle, Briefcase, LogOut } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -43,8 +43,36 @@ function CautelasPage() {
     },
   });
 
+  // ── Equipamentos em Serviço 7º BIS (virtual — filtrado por situacao) ──────
+  const { data: equipsServico = [], refetch: refetchServico } = useQuery({
+    queryKey: ["equips-cautela-servico"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("equipamentos")
+        .select("id, descricao, patrimonio, numero_serie, situacao, localizacao, categorias(nome)")
+        .eq("situacao", "cautela_servico")
+        .order("descricao");
+      return data ?? [];
+    },
+  });
+
   const cautelasAtivas = cautelas.filter((c: any) => c.status === "ativa");
   const cautelasFinalizadas = cautelas.filter((c: any) => c.status === "finalizada");
+
+  // ── Retornar equipamento de serviço ao estoque ────────────────────────────
+  async function retornarDeServico(equip: any) {
+    if (!confirm(`Retornar "${equip.descricao}" (${equip.patrimonio ?? equip.numero_serie ?? "s/n"}) para DISPONÍVEL?`)) return;
+    const { error } = await supabase
+      .from("equipamentos")
+      .update({ situacao: "disponivel" })
+      .eq("id", equip.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${equip.descricao} retornado para Disponível`);
+    qc.invalidateQueries({ queryKey: ["equips-cautela-servico"] });
+    qc.invalidateQueries({ queryKey: ["equipamentos"] });
+    qc.invalidateQueries({ queryKey: ["dash-stats"] });
+    qc.invalidateQueries({ queryKey: ["pronto-equipamentos"] });
+  }
 
   async function excluirCautela(c: any) {
     const confirmMsg =
@@ -99,7 +127,9 @@ function CautelasPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold">Cautelas</h2>
-            <p className="text-sm text-muted-foreground">{cautelas.length} cautela(s) registrada(s)</p>
+            <p className="text-sm text-muted-foreground">
+              {cautelasAtivas.length} cautela(s) ativa(s) · {equipsServico.length} em serviço 7º BIS
+            </p>
           </div>
           {role !== "quarta_secao" && <Button asChild>
             <Link to="/cautelas/nova"><Plus className="h-4 w-4" /> Nova cautela</Link>
@@ -112,6 +142,13 @@ function CautelasPage() {
               Ativas
               <Badge variant="secondary" className="ml-1.5 h-5 min-w-5 px-1 text-xs">
                 {cautelasAtivas.length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="servico" className="text-violet-700">
+              <Briefcase className="h-3.5 w-3.5 mr-1" />
+              Serviço 7º BIS
+              <Badge className="ml-1.5 h-5 min-w-5 px-1 text-xs bg-violet-600 text-white">
+                {equipsServico.length}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="descautelas">
@@ -194,6 +231,70 @@ function CautelasPage() {
                     )}
                   </TableBody>
                 </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ── Aba: Serviço 7º BIS ── */}
+          <TabsContent value="servico" className="mt-3">
+            {/* Card virtual da CAUTELA SERVIÇO 7º BIS */}
+            <Card className="border-violet-300">
+              <CardHeader className="pb-3 bg-violet-50/40 rounded-t-lg">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Briefcase className="h-4 w-4 text-violet-600" />
+                  CAUTELA SERVIÇO 7º BIS
+                  <Badge className="ml-auto bg-violet-600 text-white">
+                    {equipsServico.length} item(ns)
+                  </Badge>
+                </CardTitle>
+                <p className="text-xs text-violet-700 mt-1">
+                  Materiais destinados ao serviço do Comando de Fronteira Roraima / 7º Batalhão de Infantaria de Selva.
+                  Esta cautela é <strong>permanente</strong> e atualizada automaticamente conforme a situação dos equipamentos.
+                </p>
+              </CardHeader>
+              <CardContent className="p-0">
+                {equipsServico.length === 0 ? (
+                  <p className="text-sm text-muted-foreground px-6 py-6">
+                    Nenhum equipamento em serviço 7º BIS no momento. Use "Nova Cautela → Cautela de Serviço" para adicionar.
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Material</TableHead>
+                        <TableHead>Patrimônio</TableHead>
+                        <TableHead>Nº Série</TableHead>
+                        <TableHead>Categoria</TableHead>
+                        <TableHead>Localização</TableHead>
+                        {role !== "quarta_secao" && <TableHead className="text-right">Ações</TableHead>}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {equipsServico.map((e: any) => (
+                        <TableRow key={e.id}>
+                          <TableCell className="font-medium">{e.descricao}</TableCell>
+                          <TableCell className="font-mono text-xs">{e.patrimonio ?? "—"}</TableCell>
+                          <TableCell className="font-mono text-xs">{e.numero_serie ?? "—"}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{e.categorias?.nome ?? "—"}</TableCell>
+                          <TableCell className="text-sm">{e.localizacao ?? "7º BIS — Serviço"}</TableCell>
+                          {role !== "quarta_secao" && (
+                            <TableCell className="text-right">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1.5 text-xs h-8"
+                                onClick={() => retornarDeServico(e)}
+                              >
+                                <LogOut className="h-3.5 w-3.5" />
+                                Retornar
+                              </Button>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

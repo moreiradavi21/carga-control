@@ -90,7 +90,36 @@ function NovaCautela() {
       })
     : equips;
 
-  async function save() {
+  // ── Cautela Serviço 7º BIS: só atualiza status, não cria registro de cautela ──
+  async function saveServico() {
+    if (selectedIds.length === 0) return toast.error("Selecione ao menos um equipamento");
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("equipamentos")
+        .update({ situacao: "cautela_servico" })
+        .in("id", selectedIds);
+      if (error) throw error;
+
+      qc.invalidateQueries({ queryKey: ["equipamentos"] });
+      qc.invalidateQueries({ queryKey: ["equips-disp"] });
+      qc.invalidateQueries({ queryKey: ["dash-stats"] });
+      qc.invalidateQueries({ queryKey: ["dash-cautelas-servico"] });
+      qc.invalidateQueries({ queryKey: ["pronto-equipamentos"] });
+
+      toast.success(
+        `${selectedIds.length} equipamento(s) vinculado(s) à CAUTELA SERVIÇO 7º BIS`
+      );
+      nav({ to: "/cautelas" });
+    } catch (e: any) {
+      toast.error(e.message ?? "Falha ao vincular equipamentos ao serviço");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // ── Cautela Padrão: cria registro no banco ────────────────────────────────
+  async function savePadrao() {
     if (!militarResp.trim()) return toast.error("Informe o militar responsável");
     if (!militarRet.trim()) return toast.error("Informe o militar da retirada");
     if (!companhiaId) return toast.error("Selecione a companhia");
@@ -147,12 +176,11 @@ function NovaCautela() {
       let cautela: any;
       const { data: c1, error: e1 } = await supabase
         .from("cautelas")
-        .insert({ ...basePayload, tipo: tipoCautela })
+        .insert({ ...basePayload, tipo: "padrao" })
         .select()
         .single();
 
       if (e1) {
-        // Coluna tipo ainda não existe — salva sem ela
         const { data: c2, error: e2 } = await supabase
           .from("cautelas")
           .insert(basePayload)
@@ -171,8 +199,12 @@ function NovaCautela() {
       const { error: itErr } = await supabase.from("cautela_itens").insert(itens);
       if (itErr) throw itErr;
 
-      // A situação dos equipamentos é sincronizada automaticamente no banco
-      // ao inserir os itens, inclusive para perfis sem permissão de edição direta.
+      // Atualizar situação dos equipamentos para em_cautela
+      await supabase
+        .from("equipamentos")
+        .update({ situacao: "em_cautela" })
+        .in("id", selectedIds);
+
       qc.invalidateQueries({ queryKey: ["equipamentos"] });
       qc.invalidateQueries({ queryKey: ["equips-disp"] });
       qc.invalidateQueries({ queryKey: ["cautelas"] });
@@ -188,6 +220,11 @@ function NovaCautela() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function save() {
+    if (tipoCautela === "servico") return saveServico();
+    return savePadrao();
   }
 
   return (
@@ -234,60 +271,83 @@ function NovaCautela() {
         </button>
       </div>
 
-      {/* ── Dados da cautela ── */}
-      <Card>
-        <CardHeader><CardTitle className="text-base">Dados da cautela</CardTitle></CardHeader>
-        <CardContent className="grid md:grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <Label>Posto/Grad. responsável</Label>
-            <Input value={postoResp} onChange={(e) => setPostoResp(e.target.value)} placeholder="Ex.: Cap, Sgt" />
-          </div>
-          <div className="space-y-1">
-            <Label>Militar responsável *</Label>
-            <Input value={militarResp} onChange={(e) => setMilitarResp(e.target.value)} />
-          </div>
-          <div className="space-y-1">
-            <Label>Posto/Grad. retirada</Label>
-            <Input value={postoRet} onChange={(e) => setPostoRet(e.target.value)} />
-          </div>
-          <div className="space-y-1">
-            <Label>Militar retirada *</Label>
-            <Input value={militarRet} onChange={(e) => setMilitarRet(e.target.value)} />
-          </div>
-          <div className="space-y-1">
-            <Label>Companhia *</Label>
-            <Select value={companhiaId} onValueChange={setCompanhiaId}>
-              <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
-              <SelectContent>
-                {companhias.map((c: any) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                ))}
-                <SelectItem value="__outros__">Outros</SelectItem>
-              </SelectContent>
-            </Select>
-            {companhiaId === "__outros__" && (
-              <Input
-                className="mt-2"
-                value={outraCompanhia}
-                onChange={(e) => setOutraCompanhia(e.target.value)}
-                placeholder="Digite a companhia/unidade"
-              />
-            )}
-          </div>
-          <div className="space-y-1">
-            <Label>Data prevista de devolução</Label>
-            <Input type="date" value={dataDev} onChange={(e) => setDataDev(e.target.value)} />
-          </div>
-          <div className="md:col-span-2 space-y-1">
-            <Label>Finalidade</Label>
-            <Input value={finalidade} onChange={(e) => setFinalidade(e.target.value)} />
-          </div>
-          <div className="md:col-span-2 space-y-1">
-            <Label>Observações</Label>
-            <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} />
-          </div>
-        </CardContent>
-      </Card>
+      {/* ── Dados da cautela / Banner de Serviço ── */}
+      {tipoCautela === "servico" ? (
+        <Card className="border-violet-300 bg-violet-50/40">
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-start gap-4">
+              <div className="h-10 w-10 rounded-full bg-violet-100 flex items-center justify-center shrink-0">
+                <Briefcase className="h-5 w-5 text-violet-600" />
+              </div>
+              <div>
+                <p className="font-bold text-violet-900 text-base">CAUTELA SERVIÇO 7º BIS</p>
+                <p className="text-sm text-violet-700 mt-1">
+                  Os equipamentos selecionados serão vinculados automaticamente ao serviço do
+                  <strong> Comando de Fronteira Roraima / 7º Batalhão de Infantaria de Selva</strong>.
+                </p>
+                <p className="text-xs text-violet-600 mt-2">
+                  Não é necessário informar militar responsável. A lista da CAUTELA SERVIÇO 7º BIS
+                  será atualizada automaticamente conforme a situação dos equipamentos.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Dados da cautela</CardTitle></CardHeader>
+          <CardContent className="grid md:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Posto/Grad. responsável</Label>
+              <Input value={postoResp} onChange={(e) => setPostoResp(e.target.value)} placeholder="Ex.: Cap, Sgt" />
+            </div>
+            <div className="space-y-1">
+              <Label>Militar responsável *</Label>
+              <Input value={militarResp} onChange={(e) => setMilitarResp(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Posto/Grad. retirada</Label>
+              <Input value={postoRet} onChange={(e) => setPostoRet(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Militar retirada *</Label>
+              <Input value={militarRet} onChange={(e) => setMilitarRet(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Companhia *</Label>
+              <Select value={companhiaId} onValueChange={setCompanhiaId}>
+                <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
+                <SelectContent>
+                  {companhias.map((c: any) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                  ))}
+                  <SelectItem value="__outros__">Outros</SelectItem>
+                </SelectContent>
+              </Select>
+              {companhiaId === "__outros__" && (
+                <Input
+                  className="mt-2"
+                  value={outraCompanhia}
+                  onChange={(e) => setOutraCompanhia(e.target.value)}
+                  placeholder="Digite a companhia/unidade"
+                />
+              )}
+            </div>
+            <div className="space-y-1">
+              <Label>Data prevista de devolução</Label>
+              <Input type="date" value={dataDev} onChange={(e) => setDataDev(e.target.value)} />
+            </div>
+            <div className="md:col-span-2 space-y-1">
+              <Label>Finalidade</Label>
+              <Input value={finalidade} onChange={(e) => setFinalidade(e.target.value)} />
+            </div>
+            <div className="md:col-span-2 space-y-1">
+              <Label>Observações</Label>
+              <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ── Equipamentos ── */}
       <Card>
@@ -359,48 +419,41 @@ function NovaCautela() {
         </CardContent>
       </Card>
 
-      {/* ── Assinaturas ── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <PenLine className="h-4 w-4" />
-            Assinaturas
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 gap-x-10 gap-y-6">
-
-            <LinhaAssinatura
-              titulo="Quem fez a cautela"
-              subtitulo="Responsável pela emissão do termo"
-            />
-
-            <LinhaAssinatura
-              titulo="Quem pegou a cautela"
-              subtitulo="Militar que retirou o material"
-            />
-
-            <LinhaAssinatura
-              titulo="Cmt do Pelotão"
-              subtitulo="Ciência e autorização do Comandante"
-            />
-
-            <LinhaAssinatura
-              titulo="Recebimento do material descautelado"
-              subtitulo="Assinatura de quem recebeu o material devolvido"
-            />
-
-          </div>
-        </CardContent>
-      </Card>
+      {/* ── Assinaturas — somente para cautela padrão ── */}
+      {tipoCautela === "padrao" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <PenLine className="h-4 w-4" />
+              Assinaturas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 gap-x-10 gap-y-6">
+              <LinhaAssinatura titulo="Quem fez a cautela" subtitulo="Responsável pela emissão do termo" />
+              <LinhaAssinatura titulo="Quem pegou a cautela" subtitulo="Militar que retirou o material" />
+              <LinhaAssinatura titulo="Cmt do Pelotão" subtitulo="Ciência e autorização do Comandante" />
+              <LinhaAssinatura titulo="Recebimento do material descautelado" subtitulo="Assinatura de quem recebeu o material devolvido" />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={() => nav({ to: "/cautelas" })}>
           Cancelar
         </Button>
-        <Button disabled={saving} onClick={save}>
+        <Button
+          disabled={saving}
+          onClick={save}
+          className={tipoCautela === "servico" ? "bg-violet-600 hover:bg-violet-700" : ""}
+        >
           <Save className="h-4 w-4" />
-          {saving ? "Emitindo..." : "Emitir cautela"}
+          {saving
+            ? "Salvando..."
+            : tipoCautela === "servico"
+            ? "Vincular à CAUTELA SERVIÇO 7º BIS"
+            : "Emitir cautela"}
         </Button>
       </div>
     </div>
