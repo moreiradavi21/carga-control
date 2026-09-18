@@ -214,7 +214,9 @@ function ProntoReservaPage() {
 
   // ── Computar dados por grupo ──────────────────────────────────────────────
   const gruposData: GrupoData[] = useMemo(() => {
-    // Acumular por grupo → categoria
+    // Acumular por grupo → material/modelo (descricao do equipamento)
+    // A categoria determina apenas o grupo/seção (HARRIS, MOTOROLA, etc.)
+    // Cada descricao única é uma linha separada na tabela
     const acc: Record<GrupoKey, Record<string, { catNome: string; equips: any[] }>> = {
       HARRIS: {}, MOTOROLA: {}, SATELITAL: {}, "BALÍSTICO": {}, DIVERSOS: {},
     };
@@ -222,12 +224,15 @@ function ProntoReservaPage() {
     for (const e of equipamentos) {
       const cat    = (e as any).categorias;
       const parent = cat?.parent;
+      // Grupo/seção = derivado da categoria PAI (ou da própria categoria se não há pai)
       const grupo  = getGrupo(parent?.nome ?? null, cat?.nome ?? "");
-      const catId  = cat?.id ?? "__sem_cat__";
-      const catNome = cat?.nome ?? (e as any).descricao ?? "Sem categoria";
+      // Chave de agrupamento = descricao normalizada do equipamento (o modelo/material)
+      const descricaoRaw = ((e as any).descricao ?? "").trim();
+      const materialKey  = descricaoRaw.toUpperCase() || (cat?.id ?? "__sem_desc__");
+      const materialNome = descricaoRaw || cat?.nome || "Sem descrição";
 
-      if (!acc[grupo][catId]) acc[grupo][catId] = { catNome, equips: [] };
-      acc[grupo][catId].equips.push(e);
+      if (!acc[grupo][materialKey]) acc[grupo][materialKey] = { catNome: materialNome, equips: [] };
+      acc[grupo][materialKey].equips.push(e);
     }
 
     return GRUPOS.map(({ key, label, icon }) => {
@@ -237,7 +242,7 @@ function ProntoReservaPage() {
         const fora    = equips.filter((e: any) => classifySit(e.situacao) === "fora").length;
         const baixado = equips.filter((e: any) => classifySit(e.situacao) === "baixado").length;
         return { catId, nome: catNome, total, pelotao, fora, baixado, equips };
-      }).sort((a, b) => a.nome.localeCompare(b.nome));
+      }).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
       const total   = models.reduce((s, m) => s + m.total, 0);
       const pelotao = models.reduce((s, m) => s + m.pelotao, 0);
