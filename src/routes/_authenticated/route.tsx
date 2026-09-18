@@ -71,7 +71,7 @@ const navContratos = [
 ];
 
 const navPef = [
-  { to: "/pef-def", label: "PEF / DEF", icon: Warehouse },
+  { to: "/pefs", label: "PEF / DEF", icon: Warehouse },
 ];
 
 function AuthLayout() {
