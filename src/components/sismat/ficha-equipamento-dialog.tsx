@@ -120,7 +120,7 @@ export function FichaEquipamentoDialog({ equipamento, open, onOpenChange }: Prop
       tipo: "movimentacao",
       data: m.created_at,
       titulo: m.tipo ?? m.descricao ?? "Movimentação",
-      subtitulo: m.descricao,
+      subtitulo: m.descricao ?? undefined,
       cor: "bg-slate-500",
     });
   }
