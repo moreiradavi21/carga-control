@@ -139,7 +139,10 @@ export async function gerarPdfCautela(c: any) {
   }
 
   // ── Assinaturas ─────────────────────────────────────────────────
-  if (y > 200) { doc.addPage(); y = 30; }
+  // O bloco completo ocupa cerca de 86 mm; nunca o inicia sem espaço suficiente.
+  const assinaturaBlockH = 86;
+  const pageH = doc.internal.pageSize.getHeight();
+  if (y + assinaturaBlockH > pageH - 14) { doc.addPage(); y = 24; }
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.text("ASSINATURAS", 14, y);
