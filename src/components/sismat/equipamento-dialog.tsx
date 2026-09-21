@@ -94,6 +94,7 @@ export function EquipamentoDialog({ open, onOpenChange, equipamento, categorias 
       toast.success("Equipamento cadastrado");
     }
     qc.invalidateQueries({ queryKey: ["equipamentos"] });
+    qc.invalidateQueries({ queryKey: ["pronto-equipamentos"] });
     onOpenChange(false);
   }
 

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   RefreshCw, FileText, History, AlertTriangle, CheckCircle2, Package,
-  Users, MapPin, Radio, ChevronDown, ChevronUp,
+  Users, MapPin, Radio, ChevronDown, ChevronUp, Music,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import jsPDF from "jspdf";
@@ -40,6 +40,7 @@ const GRUPOS = [
   { key: "MOTOROLA",  label: "MATERIAL MOTOROLA",  icon: Radio },
   { key: "SATELITAL", label: "MATERIAL SATELITAL", icon: Radio },
   { key: "BALÍSTICO", label: "MATERIAL BALÍSTICO", icon: Package },
+  { key: "SOM",       label: "MATERIAL DE SOM",   icon: Music },
   { key: "DIVERSOS",  label: "MATERIAL DIVERSOS",  icon: Package },
 ] as const;
 type GrupoKey = typeof GRUPOS[number]["key"];
@@ -81,18 +82,25 @@ function sitCorFora(sit: string): string {
 }
 
 // Determina grupo a partir do nome da categoria pai (ou própria)
-function getGrupo(parentNome: string | null, selfNome: string, descricao = "", marca = ""): GrupoKey {
-  const n = [parentNome, selfNome, descricao, marca]
-    .filter(Boolean)
-    .join(" ")
+function normalizarBusca(valor: string): string {
+  return valor
     .toUpperCase()
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "");
+}
+
+function getGrupo(parentNome: string | null, selfNome: string, descricao = "", marca = ""): GrupoKey | null {
+  const categoria = normalizarBusca([parentNome, selfNome].filter(Boolean).join(" "));
+  const n = normalizarBusca([parentNome, selfNome, descricao, marca]
+    .filter(Boolean)
+    .join(" "));
+  if (/\b(SOM|AUDIO|CAIXA(?: ACUSTICA)?|MICROFONE|MIXER|MESA DE SOM|PEDESTAL|ATTACK)\b/.test(n)) return "SOM";
   if (n.includes("HARRIS")) return "HARRIS";
   if (n.includes("MOTOROLA") || /\b(?:APX|DEP|DGP)[ -]?\d+\b/.test(n)) return "MOTOROLA";
   if (n.includes("SATELIT")) return "SATELITAL";
   if (n.includes("BALIST") || n.includes("BALIS")) return "BALÍSTICO";
-  return "DIVERSOS";
+  if (categoria.includes("MATERIAIS DIVERSOS")) return "DIVERSOS";
+  return null;
 }
 
 function normalizarMaterial(descricao: string): string {
@@ -132,6 +140,7 @@ interface GrupoData {
 
 // ── Componente principal ─────────────────────────────────────────────────────
 function ProntoReservaPage() {
+  const queryClient = useQueryClient();
   const [dataCabecalho, setDataCabecalho] = useState("");
 
   useEffect(() => {
@@ -207,6 +216,27 @@ function ProntoReservaPage() {
 
   const loading = loadEquips || loadCautelas;
 
+  useEffect(() => {
+    const atualizarEquipamentos = () => {
+      void queryClient.invalidateQueries({ queryKey: ["pronto-equipamentos"] });
+    };
+    const atualizarCautelas = () => {
+      void queryClient.invalidateQueries({ queryKey: ["pronto-cautelas"] });
+      void queryClient.invalidateQueries({ queryKey: ["pronto-equipamentos"] });
+    };
+
+    const channel = supabase
+      .channel("pronto-reserva-atualizacoes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "equipamentos" }, atualizarEquipamentos)
+      .on("postgres_changes", { event: "*", schema: "public", table: "cautelas" }, atualizarCautelas)
+      .on("postgres_changes", { event: "*", schema: "public", table: "cautela_itens" }, atualizarCautelas)
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   // ── Map equipamento_id → cautela ──────────────────────────────────────────
   const cautelaMap = useMemo(() => {
     const m: Record<string, any> = {};
@@ -231,7 +261,7 @@ function ProntoReservaPage() {
     // A categoria determina apenas o grupo/seção (HARRIS, MOTOROLA, etc.)
     // Cada descricao única é uma linha separada na tabela
     const acc: Record<GrupoKey, Record<string, { catNome: string; equips: any[] }>> = {
-      HARRIS: {}, MOTOROLA: {}, SATELITAL: {}, "BALÍSTICO": {}, DIVERSOS: {},
+      HARRIS: {}, MOTOROLA: {}, SATELITAL: {}, "BALÍSTICO": {}, SOM: {}, DIVERSOS: {},
     };
 
     for (const e of equipamentos) {
@@ -240,6 +270,7 @@ function ProntoReservaPage() {
       // Grupo/seção = derivado da categoria PAI (ou da própria categoria se não há pai)
       const descricaoRaw = ((e as any).descricao ?? "").trim();
       const grupo  = getGrupo(parent?.nome ?? null, cat?.nome ?? "", descricaoRaw, (e as any).marca ?? "");
+      if (!grupo) continue;
       // Chave de agrupamento = descricao normalizada do equipamento (o modelo/material)
       const materialNome = normalizarMaterial(descricaoRaw) || cat?.nome || "Sem descrição";
       const materialKey  = materialNome.toUpperCase() || (cat?.id ?? "__sem_desc__");

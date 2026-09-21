@@ -80,6 +80,7 @@ function EquipamentosPage() {
     if (error) return toast.error(error.message);
     toast.success("Equipamento excluído");
     qc.invalidateQueries({ queryKey: ["equipamentos"] });
+    qc.invalidateQueries({ queryKey: ["pronto-equipamentos"] });
   }
 
   return (
