@@ -347,8 +347,9 @@ function ProntoReservaPage() {
     const VERDE_ESCURO: [number, number, number] = [22, 78, 43];
     const CINZA: [number, number, number] = [80, 80, 80];
 
-    // Reserva 32mm no rodapé para assinaturas em cada página
-    const FOOTER_H = 32;
+    // Reserva fixa para que tabelas e textos nunca alcancem as assinaturas.
+    const FOOTER_H = 40;
+    const tableMargin = { left: margin, right: margin, bottom: margin + FOOTER_H };
 
     function addPageIfNeeded(space: number) {
       if (y + space > ph - margin - FOOTER_H) {
@@ -408,7 +409,7 @@ function ProntoReservaPage() {
       head: [["SITUAÇÃO", "QTD"]],
       body: resumoRow,
       theme: "grid",
-      margin: { left: margin, right: margin },
+      margin: tableMargin,
       columnStyles: { 0: { cellWidth: 50 }, 1: { cellWidth: 20, halign: "center" } },
       headStyles: { fillColor: VERDE_ESCURO, fontSize: 8, fontStyle: "bold" },
       bodyStyles: { fontSize: 8 },
@@ -445,7 +446,7 @@ function ProntoReservaPage() {
           String(m.baixado),
         ]),
         theme: "grid",
-        margin: { left: margin, right: margin },
+        margin: tableMargin,
         headStyles: { fillColor: [40, 60, 40], fontSize: 8, fontStyle: "bold" },
         bodyStyles: { fontSize: 8 },
         columnStyles: {
@@ -501,7 +502,7 @@ function ProntoReservaPage() {
             c.material, c.patrimonio, c.situacao, c.quem, c.onde, c.dataSaida, c.documento,
           ]),
           theme: "striped",
-          margin: { left: margin, right: margin },
+          margin: tableMargin,
           headStyles: { fillColor: [100, 70, 20], fontSize: 7, fontStyle: "bold" },
           bodyStyles: { fontSize: 7 },
           columnStyles: {
@@ -535,7 +536,7 @@ function ProntoReservaPage() {
         ["TOTAL GERAL", String(resumo.total), String(resumo.pelotao), String(resumo.fora), String(resumo.baixado)],
       ],
       theme: "grid",
-      margin: { left: margin, right: margin },
+      margin: tableMargin,
       headStyles: { fillColor: VERDE_ESCURO, fontSize: 8, fontStyle: "bold" },
       bodyStyles: { fontSize: 8 },
       columnStyles: {
