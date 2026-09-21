@@ -274,6 +274,7 @@ function Importar() {
       if (error) throw error;
       toast.success("Todo o material foi excluído.");
       queryClient.invalidateQueries({ queryKey: ["equipamentos-count"] });
+      queryClient.invalidateQueries({ queryKey: ["pronto-equipamentos"] });
     } catch (e: any) {
       toast.error("Erro ao excluir: " + e.message);
     } finally {
@@ -367,6 +368,7 @@ function Importar() {
       if (errMsg) throw new Error(errMsg);
       toast.success(`${deduped.length} equipamento(s) importado(s) com sucesso!`);
       queryClient.invalidateQueries({ queryKey: ["equipamentos-count"] });
+      queryClient.invalidateQueries({ queryKey: ["pronto-equipamentos"] });
       reset();
     } catch (e: any) {
       toast.error(e.message);

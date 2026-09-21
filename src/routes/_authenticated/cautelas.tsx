@@ -106,6 +106,8 @@ function CautelasPage() {
       qc.invalidateQueries({ queryKey: ["dash-stats"] });
       qc.invalidateQueries({ queryKey: ["dash-cautelas-ativas"] });
       qc.invalidateQueries({ queryKey: ["dash-cautelas-servico"] });
+      qc.invalidateQueries({ queryKey: ["pronto-equipamentos"] });
+      qc.invalidateQueries({ queryKey: ["pronto-cautelas"] });
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao excluir cautela.");
     }

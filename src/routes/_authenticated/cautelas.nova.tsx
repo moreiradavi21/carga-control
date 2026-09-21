@@ -212,6 +212,8 @@ function NovaCautela() {
       qc.invalidateQueries({ queryKey: ["dash-mov"] });
       qc.invalidateQueries({ queryKey: ["dash-cautelas-ativas"] });
       qc.invalidateQueries({ queryKey: ["dash-cautelas-servico"] });
+      qc.invalidateQueries({ queryKey: ["pronto-equipamentos"] });
+      qc.invalidateQueries({ queryKey: ["pronto-cautelas"] });
 
       toast.success(`Cautela ${cautela.numero} emitida`);
       nav({ to: "/cautelas" });
