@@ -48,11 +48,11 @@ type GrupoKey = typeof GRUPOS[number]["key"];
 // ── Classificação de situação ───────────────────────────────────────────────
 // pelotao  → disponivel
 // fora     → todos os estados externos (cautelado, transferência, PEF, missão, manutenção, sindicância)
-// baixado  → baixado, extraviado, descarga
+// baixado  → baixado, extraviado, descarga, em sindicância
 function classifySit(sit: string): "pelotao" | "fora" | "baixado" {
-  if (["baixado", "extraviado", "descarga"].includes(sit)) return "baixado";
+  if (["baixado", "extraviado", "descarga", "em_sindicancia"].includes(sit)) return "baixado";
   if (sit === "disponivel") return "pelotao";
-  return "fora"; // em_cautela, cautela_servico, em_transferencia, pef_def, em_missao, em_manutencao, em_sindicancia
+  return "fora"; // em_cautela, cautela_servico, em_transferencia, pef_def, em_missao, em_manutencao
 }
 
 function sitLabelFora(sit: string): string {
@@ -104,11 +104,18 @@ function getGrupo(parentNome: string | null, selfNome: string, descricao = "", m
 }
 
 function normalizarMaterial(descricao: string): string {
-  return descricao
+  const normalizada = descricao
     .trim()
     .replace(/\s+-\s+FALCON\s+II$/i, "")
     .replace(/(HARRIS\s+RF-\d+[A-Z]-MP)\d+(\s+AMPLIF)?$/i, "$1$2")
     .replace(/\s+/g, " ");
+
+  if (/^CARREGADOR(?:\s+DE)?\s+BATERIAS?\s+6\s+BAIAS(?:\s+-\s+APX)?$/i.test(normalizada)
+    || /^CARREGADOR\s+6\s+BAIAS(?:\s+-\s+APX)?$/i.test(normalizada)) {
+    return "CARREGADOR 6 BAIAS - APX";
+  }
+
+  return normalizada;
 }
 
 function fmtDate(val: string | null | undefined) {
