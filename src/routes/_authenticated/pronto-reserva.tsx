@@ -81,13 +81,26 @@ function sitCorFora(sit: string): string {
 }
 
 // Determina grupo a partir do nome da categoria pai (ou própria)
-function getGrupo(parentNome: string | null, selfNome: string): GrupoKey {
-  const n = (parentNome ?? selfNome ?? "").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+function getGrupo(parentNome: string | null, selfNome: string, descricao = "", marca = ""): GrupoKey {
+  const n = [parentNome, selfNome, descricao, marca]
+    .filter(Boolean)
+    .join(" ")
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
   if (n.includes("HARRIS")) return "HARRIS";
-  if (n.includes("MOTOROLA")) return "MOTOROLA";
+  if (n.includes("MOTOROLA") || /\b(?:APX|DEP|DGP)[ -]?\d+\b/.test(n)) return "MOTOROLA";
   if (n.includes("SATELIT")) return "SATELITAL";
   if (n.includes("BALIST") || n.includes("BALIS")) return "BALÍSTICO";
   return "DIVERSOS";
+}
+
+function normalizarMaterial(descricao: string): string {
+  return descricao
+    .trim()
+    .replace(/\s+-\s+FALCON\s+II$/i, "")
+    .replace(/(HARRIS\s+RF-\d+[A-Z]-MP)\d+(\s+AMPLIF)?$/i, "$1$2")
+    .replace(/\s+/g, " ");
 }
 
 function fmtDate(val: string | null | undefined) {
@@ -225,11 +238,11 @@ function ProntoReservaPage() {
       const cat    = (e as any).categorias;
       const parent = cat?.parent;
       // Grupo/seção = derivado da categoria PAI (ou da própria categoria se não há pai)
-      const grupo  = getGrupo(parent?.nome ?? null, cat?.nome ?? "");
-      // Chave de agrupamento = descricao normalizada do equipamento (o modelo/material)
       const descricaoRaw = ((e as any).descricao ?? "").trim();
-      const materialKey  = descricaoRaw.toUpperCase() || (cat?.id ?? "__sem_desc__");
-      const materialNome = descricaoRaw || cat?.nome || "Sem descrição";
+      const grupo  = getGrupo(parent?.nome ?? null, cat?.nome ?? "", descricaoRaw, (e as any).marca ?? "");
+      // Chave de agrupamento = descricao normalizada do equipamento (o modelo/material)
+      const materialNome = normalizarMaterial(descricaoRaw) || cat?.nome || "Sem descrição";
+      const materialKey  = materialNome.toUpperCase() || (cat?.id ?? "__sem_desc__");
 
       if (!acc[grupo][materialKey]) acc[grupo][materialKey] = { catNome: materialNome, equips: [] };
       acc[grupo][materialKey].equips.push(e);
