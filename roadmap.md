@@ -1,0 +1,1 @@
+- [ ] Corrigir sobreposição das assinaturas nos PDFs gerados em todas as páginas.
