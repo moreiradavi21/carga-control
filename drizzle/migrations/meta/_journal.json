@@ -8,6 +8,13 @@
       "when": 1789741840979,
       "tag": "0000_auditoria_e_prontos",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790080639914,
+      "tag": "0001_restrict_selected_rls_read_policies",
+      "breakpoints": true
     }
   ]
 }
