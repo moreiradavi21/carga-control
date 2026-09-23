@@ -81,6 +81,26 @@ function sitCorFora(sit: string): string {
   return map[sit] ?? "bg-slate-500";
 }
 
+function sitLabelBaixado(sit: string): string {
+  const map: Record<string, string> = {
+    baixado:        "BAIXADO",
+    extraviado:     "EXTRAVIADO",
+    descarga:       "DESCARGA",
+    em_sindicancia: "SINDICÂNCIA",
+  };
+  return map[sit] ?? sit.toUpperCase();
+}
+
+function sitCorBaixado(sit: string): string {
+  const map: Record<string, string> = {
+    baixado:        "bg-red-700",
+    extraviado:     "bg-rose-700",
+    descarga:       "bg-red-600",
+    em_sindicancia: "bg-orange-600",
+  };
+  return map[sit] ?? "bg-destructive";
+}
+
 // Determina grupo a partir do nome da categoria pai (ou própria)
 function normalizarBusca(valor: string): string {
   return valor
@@ -163,6 +183,8 @@ function ProntoReservaPage() {
 
   // Modal FORA
   const [foraModal, setForaModal] = useState<{ modelo: string; items: any[] } | null>(null);
+  // Modal BAIXADOS / EXTRAVIADOS
+  const [baixadosModal, setBaixadosModal] = useState<{ modelo: string; items: any[] } | null>(null);
   // Modal PDF
   const [pdfDialog, setPdfDialog] = useState(false);
   // Histórico de prontos gerados (sessão)
@@ -333,6 +355,11 @@ function ProntoReservaPage() {
   function abrirFora(model: ModelData) {
     const items = model.equips.filter((e: any) => classifySit(e.situacao) === "fora");
     setForaModal({ modelo: model.nome, items });
+  }
+
+  function abrirBaixados(model: ModelData) {
+    const items = model.equips.filter((e: any) => classifySit(e.situacao) === "baixado");
+    setBaixadosModal({ modelo: model.nome, items });
   }
 
   // ── Gerar PDF ────────────────────────────────────────────────────────────
@@ -844,17 +871,34 @@ function ProntoReservaPage() {
                           <TableCell className="text-center font-mono text-emerald-700">{model.pelotao}</TableCell>
                           <TableCell className="text-center">
                             {model.fora > 0 ? (
-                              <button
-                                className="font-mono text-amber-700 underline underline-offset-2 hover:text-amber-900 cursor-pointer"
+                              <Button
+                                type="button"
+                                variant="link"
+                                className="h-auto p-0 font-mono text-amber-700 underline underline-offset-2 hover:text-amber-900"
                                 onClick={() => abrirFora(model)}
+                                aria-label={`Ver ${model.fora} materiais fora do pelotão de ${model.nome}`}
                               >
                                 {model.fora}
-                              </button>
+                              </Button>
                             ) : (
                               <span className="font-mono text-muted-foreground">0</span>
                             )}
                           </TableCell>
-                          <TableCell className="text-center font-mono text-red-700">{model.baixado}</TableCell>
+                          <TableCell className="text-center">
+                            {model.baixado > 0 ? (
+                              <Button
+                                type="button"
+                                variant="link"
+                                className="h-auto p-0 font-mono text-red-700 underline underline-offset-2 hover:text-red-900"
+                                onClick={() => abrirBaixados(model)}
+                                aria-label={`Ver ${model.baixado} materiais baixados ou extraviados de ${model.nome}`}
+                              >
+                                {model.baixado}
+                              </Button>
+                            ) : (
+                              <span className="font-mono text-muted-foreground">0</span>
+                            )}
+                          </TableCell>
                           <TableCell className="text-center">
                             {diverge ? (
                               <span className="flex items-center justify-center gap-1 text-red-600 text-xs font-semibold">
@@ -1011,6 +1055,45 @@ function ProntoReservaPage() {
                   </TableRow>
                 );
               })}
+            </TableBody>
+          </Table>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Modal BAIXADOS / EXTRAVIADOS ──────────────────────────────── */}
+      <Dialog open={!!baixadosModal} onOpenChange={(o) => { if (!o) setBaixadosModal(null); }}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex flex-wrap items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-red-700" />
+              Baixados / Extraviados — {baixadosModal?.modelo}
+              <Badge variant="destructive" className="ml-1">{baixadosModal?.items.length}</Badge>
+            </DialogTitle>
+          </DialogHeader>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Patrimônio</TableHead>
+                <TableHead>Nº Série</TableHead>
+                <TableHead>Situação</TableHead>
+                <TableHead>Localização</TableHead>
+                <TableHead>Observações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {baixadosModal?.items.map((e: any) => (
+                <TableRow key={e.id}>
+                  <TableCell className="font-mono text-xs">{e.patrimonio ?? "—"}</TableCell>
+                  <TableCell className="font-mono text-xs">{e.numero_serie ?? "—"}</TableCell>
+                  <TableCell>
+                    <Badge className={`text-[10px] ${sitCorBaixado(e.situacao)} text-white`}>
+                      {sitLabelBaixado(e.situacao)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm">{e.localizacao ?? "—"}</TableCell>
+                  <TableCell className="max-w-xs whitespace-normal text-sm">{e.observacoes ?? "—"}</TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </DialogContent>
