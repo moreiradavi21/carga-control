@@ -109,16 +109,13 @@ function normalizarBusca(valor: string): string {
     .replace(/[̀-ͯ]/g, "");
 }
 
-function getGrupo(parentNome: string | null, selfNome: string, descricao = "", marca = ""): GrupoKey | null {
+function getGrupo(parentNome: string | null, selfNome: string): GrupoKey | null {
   const categoria = normalizarBusca([parentNome, selfNome].filter(Boolean).join(" "));
-  const n = normalizarBusca([parentNome, selfNome, descricao, marca]
-    .filter(Boolean)
-    .join(" "));
-  if (/\b(SOM|AUDIO|CAIXA(?: ACUSTICA)?|MICROFONE|MIXER|MESA DE SOM|PEDESTAL|ATTACK)\b/.test(n)) return "SOM";
-  if (n.includes("HARRIS")) return "HARRIS";
-  if (n.includes("MOTOROLA") || /\b(?:APX|DEP|DGP)[ -]?\d+\b/.test(n)) return "MOTOROLA";
-  if (n.includes("SATELIT")) return "SATELITAL";
-  if (n.includes("BALIST") || n.includes("BALIS")) return "BALÍSTICO";
+  if (/\b(SOM|AUDIO)\b/.test(categoria)) return "SOM";
+  if (categoria.includes("HARRIS")) return "HARRIS";
+  if (categoria.includes("MOTOROLA")) return "MOTOROLA";
+  if (categoria.includes("SATELIT")) return "SATELITAL";
+  if (categoria.includes("BALIST") || categoria.includes("BALIS")) return "BALÍSTICO";
   if (categoria.includes("MATERIAIS DIVERSOS")) return "DIVERSOS";
   return null;
 }
@@ -298,7 +295,7 @@ function ProntoReservaPage() {
       const parent = cat?.parent;
       // Grupo/seção = derivado da categoria PAI (ou da própria categoria se não há pai)
       const descricaoRaw = ((e as any).descricao ?? "").trim();
-      const grupo  = getGrupo(parent?.nome ?? null, cat?.nome ?? "", descricaoRaw, (e as any).marca ?? "");
+      const grupo  = getGrupo(parent?.nome ?? null, cat?.nome ?? "");
       if (!grupo) continue;
       // Chave de agrupamento = descricao normalizada do equipamento (o modelo/material)
       const materialNome = normalizarMaterial(descricaoRaw) || cat?.nome || "Sem descrição";

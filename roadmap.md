@@ -1,2 +1,3 @@
 - [x] Corrigir sobreposição das assinaturas nos PDFs gerados em todas as páginas.
 - [x] Permitir abrir a relação de materiais Baixados/Extraviados pelo número no Pronto da Reserva.
+- [x] Exibir no Pronto da Reserva somente materiais pertencentes às categorias cadastradas.
