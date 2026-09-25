@@ -14,7 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   RefreshCw, FileText, History, AlertTriangle, CheckCircle2, Package,
-  Users, MapPin, Radio, ChevronDown, ChevronUp, Music,
+  Users, MapPin, Radio, ChevronDown, ChevronUp, Music, Download, Eye,
+  ArrowLeft, Loader2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import jsPDF from "jspdf";
@@ -162,6 +163,48 @@ interface GrupoData {
   models:  ModelData[];
 }
 
+interface SnapshotModel {
+  nome: string;
+  total: number;
+  pelotao: number;
+  fora: number;
+  baixado: number;
+}
+
+interface SnapshotGrupo {
+  grupo: string;
+  total: number;
+  pelotao: number;
+  fora: number;
+  baixado: number;
+  models: SnapshotModel[];
+}
+
+interface ProntoHistorico {
+  id: string;
+  data_conferencia: string;
+  of_de_dia: string | null;
+  scmt: string | null;
+  cmt_pel_com: string | null;
+  responsavel_conferencia: string | null;
+  total: number;
+  no_pelotao: number;
+  fora: number;
+  baixados: number;
+  snapshot: unknown;
+}
+
+function snapshotGrupos(snapshot: unknown): SnapshotGrupo[] {
+  if (!Array.isArray(snapshot)) return [];
+  return snapshot.filter((grupo): grupo is SnapshotGrupo => (
+    typeof grupo === "object" && grupo !== null && typeof grupo.grupo === "string" && Array.isArray(grupo.models)
+  ));
+}
+
+function labelGrupoHistorico(key: string): string {
+  return GRUPOS.find((grupo) => grupo.key === key)?.label ?? key;
+}
+
 // ── Componente principal ─────────────────────────────────────────────────────
 function ProntoReservaPage() {
   const queryClient = useQueryClient();
@@ -187,6 +230,7 @@ function ProntoReservaPage() {
   // Histórico de prontos gerados (sessão)
   const [historico, setHistorico] = useState<{ data: string; resumo: string; ts: string }[]>([]);
   const [histDialog, setHistDialog] = useState(false);
+  const [prontoSelecionado, setProntoSelecionado] = useState<ProntoHistorico | null>(null);
   // Expansão de grupos
   const [expandidos, setExpandidos] = useState<Record<string, boolean>>({});
 
@@ -226,17 +270,20 @@ function ProntoReservaPage() {
   });
 
   // ── Histórico de prontos do banco de dados ───────────────────────────────
-  const { data: historicoDB = [], refetch: refetchHistorico } = useQuery({
+  const {
+    data: historicoDB = [],
+    refetch: refetchHistorico,
+    isLoading: carregandoHistorico,
+    isError: erroHistorico,
+  } = useQuery({
     queryKey: ["prontos-historico"],
     queryFn: async () => {
-      try {
-        const { data } = await supabase
-          .from("prontos" as any)
-          .select("id, data_conferencia, of_de_dia, responsavel_conferencia, total, no_pelotao, fora, baixados")
-          .order("data_conferencia", { ascending: false })
-          .limit(30);
-        return (data ?? []) as any[];
-      } catch { return []; }
+      const { data, error } = await supabase
+        .from("prontos")
+        .select("id, data_conferencia, of_de_dia, scmt, cmt_pel_com, responsavel_conferencia, total, no_pelotao, fora, baixados, snapshot")
+        .order("data_conferencia", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as ProntoHistorico[];
     },
   });
 
@@ -357,6 +404,115 @@ function ProntoReservaPage() {
   function abrirBaixados(model: ModelData) {
     const items = model.equips.filter((e: any) => classifySit(e.situacao) === "baixado");
     setBaixadosModal({ modelo: model.nome, items });
+  }
+
+  function baixarProntoHistorico(pronto: ProntoHistorico) {
+    const dataRegistro = new Date(pronto.data_conferencia);
+    const grupos = snapshotGrupos(pronto.snapshot);
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const pw = doc.internal.pageSize.getWidth();
+    const ph = doc.internal.pageSize.getHeight();
+    const margin = 12;
+    const VERDE_ESCURO: [number, number, number] = [22, 78, 43];
+    let y = margin;
+
+    doc.setFontSize(8);
+    doc.setTextColor(80, 80, 80);
+    doc.text(`OF DE DIA: ${pronto.of_de_dia || "—"}`, margin, y);
+    doc.text(`DATA: ${format(dataRegistro, "dd/MM/yyyy")}`, pw - margin, y, { align: "right" });
+    y += 5;
+    doc.text(`SCMT: ${pronto.scmt || "—"}`, margin, y);
+    doc.text(`HORA: ${format(dataRegistro, "HH:mm")}`, pw - margin, y, { align: "right" });
+    y += 5;
+    doc.text(`CMT PEL COM: ${pronto.cmt_pel_com || "—"}`, margin, y);
+    y += 8;
+
+    doc.setFont(undefined as any, "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(...VERDE_ESCURO);
+    doc.text("HISTÓRICO DO PRONTO DA RESERVA", pw / 2, y, { align: "center" });
+    y += 5;
+    doc.setFontSize(8);
+    doc.text("SITUAÇÃO REGISTRADA NO MOMENTO DA CONFERÊNCIA", pw / 2, y, { align: "center" });
+    y += 6;
+    doc.setFont(undefined as any, "normal");
+
+    autoTable(doc, {
+      startY: y,
+      head: [["TOTAL DA CARGA", "NO PELOTÃO", "FORA", "BAIXADOS/EXTR."]],
+      body: [[String(pronto.total), String(pronto.no_pelotao), String(pronto.fora), String(pronto.baixados)]],
+      theme: "grid",
+      margin: { left: margin, right: margin, bottom: 18 },
+      headStyles: { fillColor: VERDE_ESCURO, fontSize: 8, halign: "center" },
+      bodyStyles: { fontSize: 9, halign: "center", fontStyle: "bold" },
+    });
+    y = (doc as any).lastAutoTable.finalY + 7;
+
+    for (const grupo of grupos) {
+      if (grupo.total === 0) continue;
+      if (y > ph - 45) {
+        doc.addPage();
+        y = margin;
+      }
+      doc.setFont(undefined as any, "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(...VERDE_ESCURO);
+      doc.text(labelGrupoHistorico(grupo.grupo), margin, y);
+      y += 3;
+      doc.setFont(undefined as any, "normal");
+      doc.setTextColor(30, 30, 30);
+      autoTable(doc, {
+        startY: y,
+        head: [["MATERIAL", "EXISTENTES", "NO PELOTÃO", "FORA", "BAIXADOS/EXTR."]],
+        body: grupo.models.map((modelo) => [
+          modelo.nome,
+          String(modelo.total),
+          String(modelo.pelotao),
+          String(modelo.fora),
+          String(modelo.baixado),
+        ]),
+        theme: "grid",
+        margin: { left: margin, right: margin, bottom: 18 },
+        headStyles: { fillColor: [40, 60, 40], fontSize: 7, fontStyle: "bold" },
+        bodyStyles: { fontSize: 7 },
+        columnStyles: {
+          0: { cellWidth: "auto" },
+          1: { cellWidth: 22, halign: "center" },
+          2: { cellWidth: 26, halign: "center" },
+          3: { cellWidth: 18, halign: "center" },
+          4: { cellWidth: 30, halign: "center" },
+        },
+      });
+      y = (doc as any).lastAutoTable.finalY + 7;
+    }
+
+    if (y > ph - 35) {
+      doc.addPage();
+      y = margin;
+    }
+    doc.setFontSize(8);
+    doc.setFont(undefined as any, "bold");
+    doc.setTextColor(...VERDE_ESCURO);
+    doc.text("RESPONSÁVEL PELA CONFERÊNCIA", margin, y);
+    y += 5;
+    doc.setFont(undefined as any, "normal");
+    doc.setTextColor(30, 30, 30);
+    doc.text(pronto.responsavel_conferencia || "Não informado", margin, y);
+
+    const totalPaginas = (doc as any).internal.getNumberOfPages();
+    for (let pagina = 1; pagina <= totalPaginas; pagina++) {
+      doc.setPage(pagina);
+      doc.setFontSize(6);
+      doc.setTextColor(140, 140, 140);
+      doc.text(
+        `Registro de ${format(dataRegistro, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} | SISMAT — Pel Com | Pág. ${pagina}/${totalPaginas}`,
+        pw / 2,
+        ph - 8,
+        { align: "center" },
+      );
+    }
+
+    doc.save(`Historico_Pronto_Reserva_${format(dataRegistro, "yyyyMMdd_HHmm")}.pdf`);
   }
 
   // ── Gerar PDF ────────────────────────────────────────────────────────────
@@ -735,7 +891,7 @@ function ProntoReservaPage() {
             <FileText className="h-4 w-4" />
             Gerar PDF
           </Button>
-          <Button variant="ghost" onClick={() => setHistDialog(true)}>
+          <Button variant="ghost" onClick={() => { setProntoSelecionado(null); setHistDialog(true); void refetchHistorico(); }}>
             <History className="h-4 w-4" />
             Histórico
           </Button>
@@ -1140,37 +1296,121 @@ function ProntoReservaPage() {
 
       {/* ── Dialog: histórico ──────────────────────────────────────────── */}
       <Dialog open={histDialog} onOpenChange={setHistDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
+              {prontoSelecionado && (
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => setProntoSelecionado(null)} aria-label="Voltar ao histórico">
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              )}
               <History className="h-4 w-4" />
-              Histórico de Prontos
+              {prontoSelecionado ? "Detalhes do Pronto" : "Histórico de Prontos"}
             </DialogTitle>
           </DialogHeader>
-          {/* Prontos do banco de dados (persistentes) */}
-          {historicoDB.length > 0 ? (
-            <div className="space-y-2 max-h-80 overflow-y-auto">
-              {historicoDB.map((h: any) => (
-                <div key={h.id} className="rounded border p-3 text-sm space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold">
-                      {h.data_conferencia
-                        ? format(new Date(h.data_conferencia), "dd/MM/yyyy HH:mm", { locale: ptBR })
-                        : "—"}
-                    </span>
-                    {h.of_de_dia && (
-                      <span className="text-xs text-muted-foreground">OF: {h.of_de_dia}</span>
-                    )}
+          {prontoSelecionado ? (
+            <div className="overflow-y-auto space-y-4 pr-1">
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b pb-3">
+                <div>
+                  <p className="font-semibold">{format(new Date(prontoSelecionado.data_conferencia), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
+                  <p className="text-xs text-muted-foreground">Responsável: {prontoSelecionado.responsavel_conferencia || "Não informado"}</p>
+                </div>
+                <Button type="button" onClick={() => baixarProntoHistorico(prontoSelecionado)}>
+                  <Download className="h-4 w-4" />
+                  Baixar PDF
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm">
+                <div className="border rounded p-2"><span className="text-xs text-muted-foreground block">OF de Dia</span>{prontoSelecionado.of_de_dia || "—"}</div>
+                <div className="border rounded p-2"><span className="text-xs text-muted-foreground block">SCMT</span>{prontoSelecionado.scmt || "—"}</div>
+                <div className="border rounded p-2"><span className="text-xs text-muted-foreground block">CMT Pel Com</span>{prontoSelecionado.cmt_pel_com || "—"}</div>
+                <div className="border rounded p-2"><span className="text-xs text-muted-foreground block">Conferência</span>{prontoSelecionado.responsavel_conferencia || "—"}</div>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 text-center">
+                {[
+                  ["Total", prontoSelecionado.total],
+                  ["No Pelotão", prontoSelecionado.no_pelotao],
+                  ["Fora", prontoSelecionado.fora],
+                  ["Baixados/Extr.", prontoSelecionado.baixados],
+                ].map(([label, value]) => (
+                  <div key={String(label)} className="border rounded p-2">
+                    <div className="text-xl font-bold">{value}</div>
+                    <div className="text-xs text-muted-foreground">{label}</div>
                   </div>
-                  <div className="flex gap-3 text-xs text-muted-foreground">
-                    <span>Total: <strong>{h.total}</strong></span>
-                    <span className="text-emerald-700">Pel: <strong>{h.no_pelotao}</strong></span>
-                    <span className="text-amber-700">Fora: <strong>{h.fora}</strong></span>
-                    <span className="text-red-700">Baix: <strong>{h.baixados}</strong></span>
+                ))}
+              </div>
+              <div className="overflow-x-auto border rounded">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Categoria / Material</TableHead>
+                      <TableHead className="text-center">Existentes</TableHead>
+                      <TableHead className="text-center">No Pelotão</TableHead>
+                      <TableHead className="text-center">Fora</TableHead>
+                      <TableHead className="text-center">Baixados/Extr.</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {snapshotGrupos(prontoSelecionado.snapshot).flatMap((grupo) => [
+                      <TableRow key={`${grupo.grupo}-cabecalho`} className="bg-muted/40 font-semibold">
+                        <TableCell>{labelGrupoHistorico(grupo.grupo)}</TableCell>
+                        <TableCell className="text-center">{grupo.total}</TableCell>
+                        <TableCell className="text-center">{grupo.pelotao}</TableCell>
+                        <TableCell className="text-center">{grupo.fora}</TableCell>
+                        <TableCell className="text-center">{grupo.baixado}</TableCell>
+                      </TableRow>,
+                      ...grupo.models.map((modelo) => (
+                        <TableRow key={`${grupo.grupo}-${modelo.nome}`}>
+                          <TableCell className="pl-7 text-sm">{modelo.nome}</TableCell>
+                          <TableCell className="text-center font-mono">{modelo.total}</TableCell>
+                          <TableCell className="text-center font-mono">{modelo.pelotao}</TableCell>
+                          <TableCell className="text-center font-mono">{modelo.fora}</TableCell>
+                          <TableCell className="text-center font-mono">{modelo.baixado}</TableCell>
+                        </TableRow>
+                      )),
+                    ])}
+                  </TableBody>
+                </Table>
+              </div>
+              {snapshotGrupos(prontoSelecionado.snapshot).length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-3">Este registro antigo não possui a relação detalhada de materiais.</p>
+              )}
+            </div>
+          ) : carregandoHistorico ? (
+            <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Carregando histórico...
+            </div>
+          ) : erroHistorico ? (
+            <div className="text-center py-8 space-y-3">
+              <p className="text-sm text-destructive">Não foi possível carregar o histórico.</p>
+              <Button type="button" variant="outline" onClick={() => void refetchHistorico()}>Tentar novamente</Button>
+            </div>
+          ) : historicoDB.length > 0 ? (
+            <div className="space-y-2 overflow-y-auto pr-1">
+              {historicoDB.map((h) => (
+                <div key={h.id} className="rounded border p-3 text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="min-w-0 space-y-1">
+                    <div className="font-semibold">
+                      {format(new Date(h.data_conferencia), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      Responsável: {h.responsavel_conferencia || "Não informado"}
+                    </div>
+                    <div className="flex flex-wrap gap-x-3 text-xs text-muted-foreground">
+                      <span>Total: <strong>{h.total}</strong></span>
+                      <span className="text-emerald-700">Pel: <strong>{h.no_pelotao}</strong></span>
+                      <span className="text-amber-700">Fora: <strong>{h.fora}</strong></span>
+                      <span className="text-red-700">Baix: <strong>{h.baixados}</strong></span>
+                    </div>
                   </div>
-                  {h.responsavel_conferencia && (
-                    <div className="text-xs text-muted-foreground">Resp: {h.responsavel_conferencia}</div>
-                  )}
+                  <div className="flex gap-2 shrink-0">
+                    <Button type="button" variant="outline" size="sm" onClick={() => setProntoSelecionado(h)}>
+                      <Eye className="h-4 w-4" /> Ver detalhes
+                    </Button>
+                    <Button type="button" variant="outline" size="icon" onClick={() => baixarProntoHistorico(h)} aria-label={`Baixar pronto de ${format(new Date(h.data_conferencia), "dd/MM/yyyy HH:mm")}`}>
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
